@@ -2,8 +2,10 @@
 Code Smell Detector – detects common code smells and returns structured suggestions.
 Smells: Long Method, Large Class, Deep Nesting, God Object, Duplicate Logic.
 """
-from backend.analysis_engine.code_parser import ParseResult
+from typing import List
 from dataclasses import dataclass
+
+from backend.analysis_engine.code_parser import ParseResult
 
 
 @dataclass
@@ -26,9 +28,9 @@ MANY_PARAMETERS = 5
 LONG_FILE_LOC = 300
 
 
-def detect_smells(file_path: str, parse_result: ParseResult, complexity_metrics: dict) -> list[SmellResult]:
+def detect_smells(file_path: str, parse_result: ParseResult, complexity_metrics: dict) -> List[SmellResult]:
     """Detect code smells in a parsed file."""
-    smells: list[SmellResult] = []
+    smells: List[SmellResult] = []
     rel_path = file_path  # Will be made relative by the caller
 
     # ── Long Method ─────────────────────────────────────────────

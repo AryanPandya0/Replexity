@@ -2,11 +2,12 @@
 Repository Manager – handles cloning GitHub repos, extracting zip uploads,
 and validating local directory paths. Filters for supported source files.
 """
+from typing import List, Tuple
 import os
 import shutil
 import tempfile
-import zipfile
 import uuid
+import zipfile
 from pathlib import Path
 
 SUPPORTED_EXTENSIONS = {".py", ".js", ".ts", ".jsx", ".tsx"}
@@ -24,9 +25,9 @@ def _generate_id() -> str:
     return uuid.uuid4().hex[:12]
 
 
-def _collect_source_files(root: str) -> list[str]:
+def _collect_source_files(root: str) -> List[str]:
     """Walk *root* and return absolute paths to supported source files."""
-    files: list[str] = []
+    files: List[str] = []
     for dirpath, dirnames, filenames in os.walk(root):
         # Prune ignored directories in-place
         dirnames[:] = [d for d in dirnames if d not in IGNORE_DIRS]
@@ -39,7 +40,7 @@ def _collect_source_files(root: str) -> list[str]:
 
 # ── Public API ──────────────────────────────────────────────────
 
-def clone_github_repo(url: str, branch: str = "main") -> tuple[str, str, list[str]]:
+def clone_github_repo(url: str, branch: str = "main") -> Tuple[str, str, List[str]]:
     """Clone a GitHub repo and return (analysis_id, repo_root, source_files)."""
     import git
     analysis_id = _generate_id()
@@ -54,7 +55,7 @@ def clone_github_repo(url: str, branch: str = "main") -> tuple[str, str, list[st
     return analysis_id, dest, source_files
 
 
-def extract_zip(zip_path: str) -> tuple[str, str, list[str]]:
+def extract_zip(zip_path: str) -> Tuple[str, str, List[str]]:
     """Extract a zip archive and return (analysis_id, root, source_files)."""
     analysis_id = _generate_id()
     dest = str(WORK_DIR / analysis_id)
@@ -65,7 +66,7 @@ def extract_zip(zip_path: str) -> tuple[str, str, list[str]]:
     return analysis_id, dest, source_files
 
 
-def use_local_directory(path: str) -> tuple[str, str, list[str]]:
+def use_local_directory(path: str) -> Tuple[str, str, List[str]]:
     """Validate a local directory and return (analysis_id, root, source_files)."""
     if not os.path.isdir(path):
         raise ValueError(f"Directory not found: {path}")

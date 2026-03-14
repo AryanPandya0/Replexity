@@ -1,10 +1,9 @@
 """
 FastAPI application entry point.
 """
+from backend.api.routes import router
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
-from backend.api.routes import router
 
 app = FastAPI(
     title="AI Code Complexity Visualizer",

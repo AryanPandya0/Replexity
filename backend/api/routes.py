@@ -1,57 +1,59 @@
 """
 FastAPI API Routes – all endpoints for repository analysis and export.
 """
-import os
-import io
+from typing import Dict, List
 import csv
-import json
+import io
+import os
 import tempfile
-from pathlib import Path
 
-from fastapi import APIRouter, UploadFile, File, HTTPException
-from fastapi.responses import StreamingResponse, JSONResponse
-
-from backend.api.schemas import (
-    GitHubAnalysisRequest,
-    LocalAnalysisRequest,
-    AnalysisResult,
-    ProjectOverview,
-    FileMetrics,
-    FunctionMetrics,
-    CodeSmellResult,
-    RefactorSuggestion,
-)
-from backend.analysis_engine.repo_manager import clone_github_repo, extract_zip, use_local_directory
+from backend.analysis_engine.bug_predictor import predict_bug_risk
 from backend.analysis_engine.code_parser import parse_file
 from backend.analysis_engine.complexity_analyzer import analyze_complexity
-from backend.analysis_engine.risk_model import calculate_risk_score
-from backend.analysis_engine.bug_predictor import predict_bug_risk
-from backend.analysis_engine.smell_detector import detect_smells
-from backend.analysis_engine.refactor_engine import generate_suggestions
 from backend.analysis_engine.health_score import calculate_health_score
+from backend.analysis_engine.refactor_engine import generate_suggestions
+from backend.analysis_engine.repo_manager import (
+    clone_github_repo,
+    extract_zip,
+    use_local_directory,
+)
+from backend.analysis_engine.risk_model import calculate_risk_score
+from backend.analysis_engine.smell_detector import detect_smells
+from backend.api.schemas import (
+    AnalysisResult,
+    CodeSmellResult,
+    FileMetrics,
+    FunctionMetrics,
+    GitHubAnalysisRequest,
+    LocalAnalysisRequest,
+    ProjectOverview,
+    RefactorSuggestion,
+)
+from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi.responses import StreamingResponse
 
 router = APIRouter(prefix="/api", tags=["analysis"])
 
 # In-memory cache for analysis results
-_analysis_cache: dict[str, AnalysisResult] = {}
+_analysis_cache: Dict[str, AnalysisResult] = {}
 
 
 # ── Core Analysis Pipeline ──────────────────────────────────────
 
-def _run_analysis(analysis_id: str, repo_root: str, source_files: list[str]) -> AnalysisResult:
+def _run_analysis(analysis_id: str, repo_root: str, source_files: List[str]) -> AnalysisResult:
     """Run the full analysis pipeline on a set of source files."""
     project_name = os.path.basename(repo_root.rstrip("/\\")) or "project"
 
-    all_file_metrics: list[FileMetrics] = []
-    all_smells: list[CodeSmellResult] = []
-    all_suggestions: list[RefactorSuggestion] = []
+    all_file_metrics: List[FileMetrics] = []
+    all_smells: List[CodeSmellResult] = []
+    all_suggestions: List[RefactorSuggestion] = []
     risk_dist = {"low": 0, "medium": 0, "high": 0, "critical": 0}
     total_functions = 0
     total_classes = 0
     total_loc = 0
     total_complexity = 0.0
     total_maintainability = 0.0
-    languages: dict[str, int] = {}
+    languages: Dict[str, int] = {}
 
     for file_path in source_files:
         try:
@@ -166,8 +168,8 @@ def _run_analysis(analysis_id: str, repo_root: str, source_files: list[str]) -> 
             continue
 
     n_files = max(1, len(all_file_metrics))
-    avg_complexity = round(total_complexity / n_files, 2)
-    avg_maintainability = round(total_maintainability / n_files, 2)
+    avg_complexity = float(f"{total_complexity / n_files:.2f}")
+    avg_maintainability = float(f"{total_maintainability / n_files:.2f}")
 
     health = calculate_health_score(
         avg_complexity=avg_complexity,
@@ -228,10 +230,10 @@ async def analyze_upload(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail="Please upload a .zip file.")
 
     # Save the uploaded file
-    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".zip")
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".zip", mode="wb")
     try:
         content = await file.read()
-        tmp.write(content)
+        tmp.write(content)  # type: ignore
         tmp.close()
         analysis_id, repo_root, files = extract_zip(tmp.name)
     except Exception as e:

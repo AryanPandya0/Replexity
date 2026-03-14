@@ -1,3 +1,5 @@
+from typing import Dict
+
 """
 Health Score Calculator – computes a global project Code Health Score (0-100).
 """
@@ -6,7 +8,7 @@ Health Score Calculator – computes a global project Code Health Score (0-100).
 def calculate_health_score(
     avg_complexity: float,
     avg_maintainability: float,
-    risk_distribution: dict[str, int],
+    risk_distribution: Dict[str, int],
     total_smells: int,
     total_files: int,
 ) -> float:

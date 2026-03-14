@@ -49,8 +49,9 @@ export default function AnalysisInputPage({ onResult }: Props) {
       }
       onResult(result);
       navigate('/dashboard');
-    } catch (err: any) {
-      const msg = err?.response?.data?.detail || err?.message || 'Analysis failed';
+    } catch (err: unknown) {
+      const errorObj = err as { response?: { data?: { detail?: string } }, message?: string };
+      const msg = errorObj?.response?.data?.detail || errorObj?.message || 'Analysis failed';
       setError(String(msg));
     } finally {
       setLoading(false);

@@ -1,10 +1,10 @@
 """
 API Pydantic schemas for request/response models.
 """
-from pydantic import BaseModel, Field
-from typing import Optional
 from enum import Enum
+from typing import Dict, List, Optional
 
+from pydantic import BaseModel, Field
 
 # ── Request Models ──────────────────────────────────────────────
 
@@ -79,9 +79,9 @@ class FileMetrics(BaseModel):
     risk_score: float = 0.0
     risk_level: str = "low"
     bug_risk_probability: float = 0.0
-    functions: list[FunctionMetrics] = []
-    code_smells: list[CodeSmellResult] = []
-    refactor_suggestions: list[RefactorSuggestion] = []
+    functions: List[FunctionMetrics] = []
+    code_smells: List[CodeSmellResult] = []
+    refactor_suggestions: List[RefactorSuggestion] = []
 
 
 class ProjectOverview(BaseModel):
@@ -92,14 +92,14 @@ class ProjectOverview(BaseModel):
     avg_complexity: float = 0.0
     avg_maintainability: float = 100.0
     health_score: float = 100.0
-    languages: dict[str, int] = {}
+    languages: Dict[str, int] = {}
 
 
 class AnalysisResult(BaseModel):
     analysis_id: str
     project_name: str
     overview: ProjectOverview
-    files: list[FileMetrics] = []
-    code_smells: list[CodeSmellResult] = []
-    refactor_suggestions: list[RefactorSuggestion] = []
-    risk_distribution: dict[str, int] = {"low": 0, "medium": 0, "high": 0, "critical": 0}
+    files: List[FileMetrics] = []
+    code_smells: List[CodeSmellResult] = []
+    refactor_suggestions: List[RefactorSuggestion] = []
+    risk_distribution: Dict[str, int] = {"low": 0, "medium": 0, "high": 0, "critical": 0}

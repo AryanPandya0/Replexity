@@ -2,6 +2,7 @@
 Refactoring Suggestion Engine – generates actionable refactoring suggestions
 based on detected code smells, complexity metrics, and risk scores.
 """
+from typing import List
 from dataclasses import dataclass
 
 
@@ -29,16 +30,13 @@ def generate_suggestions(
     complexity_metrics: dict,
     risk_score: float,
     parse_result=None,
-) -> list[Suggestion]:
+) -> List[Suggestion]:
     """Generate refactoring suggestions for a file."""
-    suggestions: list[Suggestion] = []
+    suggestions: List[Suggestion] = []
     priority = _priority_from_risk(risk_score)
 
-    cc = complexity_metrics.get("cyclomatic_complexity", 0)
     loc = complexity_metrics.get("loc", 0)
     nesting = complexity_metrics.get("max_nesting_depth", 0)
-    avg_func_len = complexity_metrics.get("avg_function_length", 0)
-    max_func_len = complexity_metrics.get("max_function_length", 0)
     mi = complexity_metrics.get("maintainability_index", 100)
 
     # ── Split large functions ───────────────────────────────────

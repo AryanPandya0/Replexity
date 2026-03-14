@@ -1,3 +1,5 @@
+from typing import Tuple
+
 """
 Risk Model – AI scoring model that calculates a Risk Score (0-100) for each file.
 Uses weighted formula combining multiple normalized metrics.
@@ -29,7 +31,7 @@ def calculate_risk_score(
     avg_function_length: float,
     num_branches: int,
     num_functions: int = 1,
-) -> tuple[float, str]:
+) -> Tuple[float, str]:
     """
     Calculate Risk Score (0-100) for a file.
 

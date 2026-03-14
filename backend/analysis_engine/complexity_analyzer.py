@@ -3,6 +3,7 @@ Complexity Analyzer – computes cyclomatic complexity, maintainability index,
 and other metrics using radon for Python and custom logic for JS/TS.
 """
 import math
+
 from backend.analysis_engine.code_parser import ParseResult
 
 
@@ -13,8 +14,8 @@ def _safe_maintainability_index(halstead_volume: float, cc: float, loc: int) -> 
     try:
         ln_vol = math.log(halstead_volume) if halstead_volume > 0 else 0
         ln_loc = math.log(loc) if loc > 0 else 0
-        mi = max(0, (171 - 5.2 * ln_vol - 0.23 * cc - 16.2 * ln_loc) * 100 / 171)
-        return round(min(100.0, mi), 2)
+        mi = max(0.0, float((171 - 5.2 * ln_vol - 0.23 * cc - 16.2 * ln_loc) * 100 / 171))
+        return float(f"{min(100.0, float(mi)):.2f}")
     except (ValueError, ZeroDivisionError):
         return 50.0
 
@@ -23,7 +24,7 @@ def compute_python_complexity(file_path: str, parse_result: ParseResult) -> dict
     """Use radon to compute complexity for Python files."""
     try:
         from radon.complexity import cc_visit
-        from radon.metrics import mi_visit, h_visit
+        from radon.metrics import mi_visit
         from radon.raw import analyze
 
         with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
@@ -35,14 +36,14 @@ def compute_python_complexity(file_path: str, parse_result: ParseResult) -> dict
         # Cyclomatic complexity per function/class
         cc_results = cc_visit(source)
         complexities = [block.complexity for block in cc_results]
-        avg_cc = sum(complexities) / len(complexities) if complexities else 1.0
+        avg_cc = float(sum(complexities)) / len(complexities) if complexities else 1.0
 
         # Maintainability Index
         mi = mi_visit(source, multi=True)
 
         return {
-            "cyclomatic_complexity": round(avg_cc, 2),
-            "maintainability_index": round(max(0, min(100, mi)), 2),
+            "cyclomatic_complexity": float(f"{avg_cc:.2f}"),
+            "maintainability_index": float(f"{max(0.0, min(100.0, float(mi))):.2f}"),
             "loc": raw.loc,
             "blank_lines": raw.blank,
             "comment_lines": raw.comments,
@@ -62,10 +63,10 @@ def _compute_generic_complexity(parse_result: ParseResult) -> dict:
     # Estimate maintainability index
     loc = max(1, parse_result.loc)
     halstead_vol = loc * math.log2(max(2, parse_result.num_functions + parse_result.num_imports + 2))
-    mi = _safe_maintainability_index(halstead_vol, avg_cc, loc)
+    mi = _safe_maintainability_index(halstead_vol, float(avg_cc), loc)
 
     return {
-        "cyclomatic_complexity": round(avg_cc, 2),
+        "cyclomatic_complexity": float(f"{avg_cc:.2f}"),
         "maintainability_index": mi,
         "loc": parse_result.loc,
         "blank_lines": parse_result.blank_lines,
@@ -83,7 +84,7 @@ def analyze_complexity(file_path: str, parse_result: ParseResult) -> dict:
     # Add function-level stats
     if parse_result.functions:
         func_lengths = [f.loc for f in parse_result.functions]
-        metrics["avg_function_length"] = round(sum(func_lengths) / len(func_lengths), 1)
+        metrics["avg_function_length"] = float(f"{sum(func_lengths) / len(func_lengths):.1f}")
         metrics["max_function_length"] = max(func_lengths)
     else:
         metrics["avg_function_length"] = 0.0
