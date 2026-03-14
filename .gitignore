@@ -1,1 +1,38 @@
+# General & IDE
 .vscode/
+.idea/
+.DS_Store
+*.swp
+*.log
+
+# Python / Backend
+__pycache__/
+backend/__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+.pytest_cache/
+.ruff_cache/
+backend/.ruff_cache/
+backend/ruff_errors.txt
+backend/ruff_errors.json
+backend/ruff_report.json
+
+# Node / Frontend
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+frontend/.eslintcache
+frontend/eslint_report.json
+frontend/*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Other
+.env
+*.local
