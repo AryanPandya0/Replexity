@@ -1,7 +1,7 @@
 """
 FastAPI API Routes – all endpoints for repository analysis and export.
 """
-from typing import Dict, List
+from typing import Dict, List, Set
 import csv
 import io
 import os
@@ -15,6 +15,7 @@ from backend.analysis_engine.refactor_engine import generate_suggestions
 from backend.analysis_engine.repo_manager import (
     clone_github_repo,
     extract_zip,
+    get_code_churn,
     use_local_directory,
 )
 from backend.analysis_engine.risk_model import calculate_risk_score
@@ -47,6 +48,7 @@ def _run_analysis(analysis_id: str, repo_root: str, source_files: List[str]) -> 
     all_file_metrics: List[FileMetrics] = []
     all_smells: List[CodeSmellResult] = []
     all_suggestions: List[RefactorSuggestion] = []
+    import_map: Dict[str, Set[str]] = {}
     risk_dist = {"low": 0, "medium": 0, "high": 0, "critical": 0}
     total_functions = 0
     total_classes = 0
@@ -118,11 +120,18 @@ def _run_analysis(analysis_id: str, repo_root: str, source_files: List[str]) -> 
                     complexity=f.complexity,
                     nesting_depth=f.nesting_depth,
                     parameters=f.parameters,
+                    cognitive_complexity=f.cognitive_complexity,
+                    halstead_volume=f.halstead_volume,
+                    halstead_difficulty=f.halstead_difficulty,
+                    halstead_effort=f.halstead_effort,
                 )
                 for f in parse_result.functions
             ]
 
-            # 8. Build file metrics
+            # 9. Get Code Churn
+            churn = get_code_churn(repo_root, file_path)
+
+            # 10. Build file metrics (preliminary, without coupling)
             file_metric = FileMetrics(
                 file_path=rel_path,
                 language=parse_result.language,
@@ -132,7 +141,12 @@ def _run_analysis(analysis_id: str, repo_root: str, source_files: List[str]) -> 
                 num_functions=complexity_metrics["num_functions"],
                 num_classes=complexity_metrics["num_classes"],
                 cyclomatic_complexity=complexity_metrics["cyclomatic_complexity"],
+                cognitive_complexity=complexity_metrics["cognitive_complexity"],
+                halstead_volume=complexity_metrics["halstead_volume"],
+                halstead_difficulty=complexity_metrics["halstead_difficulty"],
+                halstead_effort=complexity_metrics["halstead_effort"],
                 max_nesting_depth=complexity_metrics["max_nesting_depth"],
+                inheritance_depth=complexity_metrics["inheritance_depth"],
                 avg_function_length=complexity_metrics["avg_function_length"],
                 max_function_length=complexity_metrics["max_function_length"],
                 num_imports=complexity_metrics["num_imports"],
@@ -142,10 +156,13 @@ def _run_analysis(analysis_id: str, repo_root: str, source_files: List[str]) -> 
                 risk_score=risk_score,
                 risk_level=risk_level,
                 bug_risk_probability=bug_risk,
+                code_churn=churn,
                 functions=func_metrics,
                 code_smells=smell_results,
                 refactor_suggestions=suggestion_results,
             )
+            
+            import_map[rel_path] = parse_result.imports
 
             all_file_metrics.append(file_metric)
             all_smells.extend(smell_results)
@@ -167,9 +184,28 @@ def _run_analysis(analysis_id: str, repo_root: str, source_files: List[str]) -> 
             print(f"Warning: Failed to analyze {file_path}: {e}")
             continue
 
+    # Calculate Coupling (Ca, Ce, Instability)
+    for f in all_file_metrics:
+        # Efferent Coupling (Ce) - count how many other project files are imported
+        imported_files = import_map.get(f.file_path, set())
+        for other in all_file_metrics:
+            if f.file_path == other.file_path: 
+                continue
+            # Check if other file's name or module name is in imports
+            other_base = os.path.basename(other.file_path).split('.')[0]
+            if other_base in imported_files or other.file_path in imported_files:
+                f.coupling_efferent += 1
+                other.coupling_afferent += 1
+    
+    for f in all_file_metrics:
+        total_coupling = float(f.coupling_afferent + f.coupling_efferent)
+        if total_coupling > 0:
+            f.instability = round(float(f.coupling_efferent) / total_coupling, 2)
+
     n_files = max(1, len(all_file_metrics))
-    avg_complexity = float(f"{total_complexity / n_files:.2f}")
-    avg_maintainability = float(f"{total_maintainability / n_files:.2f}")
+    n_files_f = float(n_files)
+    avg_complexity = float(round(total_complexity / n_files_f, 2))
+    avg_maintainability = float(round(total_maintainability / n_files_f, 2))
 
     health = calculate_health_score(
         avg_complexity=avg_complexity,
@@ -310,14 +346,16 @@ async def export_csv(analysis_id: str):
     writer = csv.writer(output)
     writer.writerow([
         "File", "Language", "LOC", "Functions", "Classes",
-        "Cyclomatic Complexity", "Nesting Depth", "Maintainability Index",
-        "Risk Score", "Risk Level", "Bug Risk %",
+        "Cyclomatic Complexity", "Cognitive Complexity", "Nesting Depth", 
+        "Maintainability Index", "Halstead Volume", "Coupling (Ca)", "Coupling (Ce)",
+        "Inheritance Depth", "Code Churn", "Risk Score", "Risk Level",
     ])
     for f in result.files:
         writer.writerow([
             f.file_path, f.language, f.loc, f.num_functions, f.num_classes,
-            f.cyclomatic_complexity, f.max_nesting_depth, f.maintainability_index,
-            f.risk_score, f.risk_level, f.bug_risk_probability,
+            f.cyclomatic_complexity, f.cognitive_complexity, f.max_nesting_depth,
+            f.maintainability_index, f.halstead_volume, f.coupling_afferent, f.coupling_efferent,
+            f.inheritance_depth, f.code_churn, f.risk_score, f.risk_level,
         ])
 
     return StreamingResponse(
@@ -367,9 +405,10 @@ async def export_pdf(analysis_id: str):
     # Top risky files
     pdf.set_font("Helvetica", "B", 13)
     pdf.cell(0, 8, "Top Risk Files", ln=True)
-    pdf.set_font("Helvetica", "", 9)
-    for f in result.files[:20]:
-        pdf.cell(0, 5, f"  {f.file_path} - Risk: {f.risk_score} ({f.risk_level}) | CC: {f.cyclomatic_complexity} | LOC: {f.loc}", ln=True)
+    pdf.set_font("Helvetica", "", 8)
+    for f in result.files[:25]:
+        metrics_str = f"Risk: {f.risk_score} | CC: {f.cyclomatic_complexity} | Cog: {f.cognitive_complexity} | LOC: {f.loc} | Churn: {f.code_churn} | Ca/Ce: {f.coupling_afferent}/{f.coupling_efferent}"
+        pdf.cell(0, 5, f"  {f.file_path} - {metrics_str}", ln=True)
     pdf.ln(3)
 
     # Code Smells

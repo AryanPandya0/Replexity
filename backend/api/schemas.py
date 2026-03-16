@@ -58,6 +58,10 @@ class FunctionMetrics(BaseModel):
     complexity: int = 1
     nesting_depth: int = 0
     parameters: int = 0
+    cognitive_complexity: int = 0
+    halstead_volume: float = 0.0
+    halstead_difficulty: float = 0.0
+    halstead_effort: float = 0.0
 
 
 class FileMetrics(BaseModel):
@@ -79,6 +83,15 @@ class FileMetrics(BaseModel):
     risk_score: float = 0.0
     risk_level: str = "low"
     bug_risk_probability: float = 0.0
+    cognitive_complexity: float = 0.0
+    halstead_volume: float = 0.0
+    halstead_difficulty: float = 0.0
+    halstead_effort: float = 0.0
+    coupling_afferent: int = 0
+    coupling_efferent: int = 0
+    instability: float = 0.0
+    inheritance_depth: int = 0
+    code_churn: int = 0
     functions: List[FunctionMetrics] = []
     code_smells: List[CodeSmellResult] = []
     refactor_suggestions: List[RefactorSuggestion] = []
