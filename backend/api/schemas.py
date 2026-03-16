@@ -4,7 +4,7 @@ API Pydantic schemas for request/response models.
 from enum import Enum
 from typing import Dict, List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field  # type: ignore
 
 # ── Request Models ──────────────────────────────────────────────
 

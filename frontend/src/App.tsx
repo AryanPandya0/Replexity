@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
 import LandingPage from './pages/LandingPage';
 import AnalysisInputPage from './pages/AnalysisInputPage';

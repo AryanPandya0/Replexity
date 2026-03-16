@@ -4,8 +4,22 @@ and other metrics using radon for Python and custom logic for JS/TS.
 """
 import math
 from typing import Dict, List, Tuple
+try:
+    from radon.complexity import cc_visit  # type: ignore
+    from radon.metrics import mi_visit, h_visit  # type: ignore
+    from radon.raw import analyze  # type: ignore
+except ImportError:
+    # We will handle missing radon in the functions
+    pass
 
-from backend.analysis_engine.code_parser import ParseResult, FunctionInfo
+try:
+    from .code_parser import ParseResult, FunctionInfo  # type: ignore
+except (ImportError, ValueError):
+    try:
+        from backend.analysis_engine.code_parser import ParseResult, FunctionInfo  # type: ignore
+    except ImportError:
+        # Final fallback if both fail
+        pass
 
 
 def calculate_halstead_metrics(operators: List[str], operands: List[str]) -> Tuple[float, float, float]:
@@ -53,10 +67,6 @@ def _safe_maintainability_index(halstead_volume: float, cc: float, loc: int) -> 
 def compute_python_complexity(file_path: str, parse_result: ParseResult) -> dict:
     """Use radon to compute complexity for Python files."""
     try:
-        from radon.complexity import cc_visit
-        from radon.metrics import mi_visit
-        from radon.raw import analyze
-
         with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
             source = f.read()
 
@@ -71,7 +81,6 @@ def compute_python_complexity(file_path: str, parse_result: ParseResult) -> dict
         # Maintainability Index
         mi = mi_visit(source, multi=True)
 
-        from radon.metrics import h_visit
         h_metrics = h_visit(source)
         
         cognitive_cc = sum(f.cognitive_complexity for f in parse_result.functions)

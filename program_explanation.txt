@@ -1,0 +1,55 @@
+# AI Code Complexity Visualizer - How it Works
+
+## 1. System Architecture
+The application is built using a modern full-stack architecture:
+- **Frontend**: A React application written in TypeScript and styled with TailwindCSS. It provides an interactive dashboard for visualizing metrics and code health.
+- **Backend**: A FastAPI (Python) server that handles the heavy lifting: code parsing, metric calculation, and repository management.
+
+---
+
+## 2. The Analysis Engine (The Core)
+When you submit a repository URL or a folder, the backend goes through these stages:
+
+### A. Repository Management
+- **Source**: It can clone from GitHub or process a local directory.
+- **Filtering**: It automatically ignores things like `node_modules`, `.git`, and `__pycache__` to focus only on source code (.py, .js, .ts, etc.).
+
+### B. Code Parsing (`code_parser.py`)
+This is where the code is "read" and converted into a structure the program understands:
+- **Python**: Uses the built-in `ast` (Abstract Syntax Tree) module to build a map of every function and class. It captures exactly where they start/end and what logic is inside.
+- **JavaScript/TypeScript**: Uses a "heuristic" (regex-based) approach to identify function blocks and class structures in a way that works across different JS flavors.
+- **Metrics Extracted**: Lines of Code (LOC), parameter counts, nesting levels, and logic branches.
+
+### C. Complexity Calculation (`complexity_analyzer.py`)
+The engine calculates several industry-standard metrics:
+1. **Cyclomatic Complexity**: Measures the number of independent paths through the code. Every `if`, `for`, `while`, and `case` adds complexity. High complexity means the code is hard to test and maintain.
+2. **Nesting Depth**: Tracks how deep the logic goes (e.g., an `if` inside a `for` inside an `if`). 
+3. **Maintainability Index**: A custom score (0-100) that combines LOC, complexity, and volume to tell you how "expensive" the code will be to change in the future.
+
+### D. Code Smell Detection (`smell_detector.py`)
+The system scans for "Anti-patterns" or bad habits, such as:
+- **Long Method**: Functions that are too long to read.
+- **God Object**: Files that try to do too many things at once.
+- **Deep Nesting**: Logic that is too nested and confusing.
+- **Too Many Parameters**: Functions that are rigid and hard to use.
+
+---
+
+## 3. Advanced Features
+- **Bug Prediction (`bug_predictor.py`)**: Uses a mathematical probability model based on complexity and depth to estimate how likely a specific function is to have a hidden bug.
+- **Risk Scoring (`risk_model.py`)**: Assigns a "Risk Level" (Low, Medium, High, Critical) to every file based on its metrics.
+- **Health Score (`health_score.py`)**: Aggregates all repository metrics into a single "Health %" score, similar to Grade A/B/C systems.
+
+---
+
+## 4. User Workflow
+1. **Input**: User provides a URL or path.
+2. **Backend Processing**: The engine runs all the logic described above.
+3. **Visualization**: The results are sent to the React frontend, which displays "Heat Maps" (highlighting risky files) and charts.
+4. **Refactoring Suggestions**: The `refactor_engine.py` generates plain-English advice on how to fix the detected issues.
+5. **Exporting**: You can generate CSV or PDF reports of the entire analysis.
+
+---
+
+## Summary
+In short, the program works by "compiling" your code into mathematical data, then running that data through a set of rules and models to tell you exactly where your code is risky and how to make it better.

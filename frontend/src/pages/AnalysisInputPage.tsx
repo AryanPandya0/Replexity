@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { analyzeGitHub, analyzeUpload, analyzeLocal } from '../api';
 import type { AnalysisResult } from '../types';

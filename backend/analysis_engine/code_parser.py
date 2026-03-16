@@ -187,6 +187,24 @@ def parse_python(file_path: str) -> ParseResult:
     except SyntaxError:
         return result
 
+    # 1. First pass: Build class map for local inheritance tracking
+    class_parents = {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ClassDef):
+            class_parents[node.name] = [
+                base.id for base in node.bases if isinstance(base, ast.Name)
+            ]
+
+    def get_dit(cls_name, depth=1):
+        """Recursive Depth of Inheritance Tree for local classes."""
+        parents = class_parents.get(cls_name, [])
+        if not parents:
+            return depth
+        max_p_depth = 0
+        for p in parents:
+            max_p_depth = max(max_p_depth, get_dit(p, depth + 1))
+        return max_p_depth
+
     # Count imports
     for node in ast.walk(tree):
         if isinstance(node, (ast.Import, ast.ImportFrom)):
@@ -244,11 +262,8 @@ def parse_python(file_path: str) -> ParseResult:
                 result.imports.add(str(node.module))
 
     # Inheritance Depth (max for this file)
-    for node in ast.walk(tree):
-        if isinstance(node, ast.ClassDef):
-            # We estimate inheritance depth by counting base classes
-            # In a shallow view, we only see direct parents
-            result.inheritance_depth = max(result.inheritance_depth, len(node.bases))
+    for cls_name in class_parents:
+        result.inheritance_depth = max(result.inheritance_depth, get_dit(cls_name))
 
     return result
 
@@ -370,9 +385,27 @@ def parse_javascript(file_path: str) -> ParseResult:
     result = ParseResult(file_path=file_path, language=lang)
     result.loc = sum(1 for line in lines if line.strip())
     result.blank_lines = sum(1 for line in lines if not line.strip())
-    result.comment_lines = sum(
-        1 for line in lines if line.strip().startswith("//") or line.strip().startswith("/*") or line.strip().startswith("*")
-    )
+    
+    # Accurate comment counting for JS/TS
+    comment_count = 0
+    in_block_comment = False
+    for line in lines:
+        stripped = line.strip()
+        if not stripped: continue
+        
+        if in_block_comment:
+            comment_count += 1
+            if "*/" in stripped:
+                in_block_comment = False
+        else:
+            if stripped.startswith("//"):
+                comment_count += 1
+            elif "/*" in stripped:
+                comment_count += 1
+                if "*/" not in stripped:
+                    in_block_comment = True
+    
+    result.comment_lines = comment_count
     result.num_imports = len(_JS_IMPORT_PATTERN.findall(source))
     result.num_classes = len(_JS_CLASS_PATTERN.findall(source))
     result.num_branches = len(_JS_BRANCH_KEYWORDS.findall(source))

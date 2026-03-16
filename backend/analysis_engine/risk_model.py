@@ -66,5 +66,5 @@ def calculate_risk_score(
         + 0.10 * branch_score
     )
 
-    risk_score = float(round(max(0.0, min(100.0, risk_score)), 2))
+    risk_score = float(f"{max(0.0, min(100.0, risk_score)):.2f}")
     return risk_score, _risk_level(risk_score)

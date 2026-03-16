@@ -7,20 +7,20 @@ import io
 import os
 import tempfile
 
-from backend.analysis_engine.bug_predictor import predict_bug_risk
-from backend.analysis_engine.code_parser import parse_file
-from backend.analysis_engine.complexity_analyzer import analyze_complexity
-from backend.analysis_engine.health_score import calculate_health_score
-from backend.analysis_engine.refactor_engine import generate_suggestions
-from backend.analysis_engine.repo_manager import (
+from backend.analysis_engine.bug_predictor import predict_bug_risk  # type: ignore
+from backend.analysis_engine.code_parser import parse_file  # type: ignore
+from backend.analysis_engine.complexity_analyzer import analyze_complexity  # type: ignore
+from backend.analysis_engine.health_score import calculate_health_score  # type: ignore
+from backend.analysis_engine.refactor_engine import generate_suggestions  # type: ignore
+from backend.analysis_engine.repo_manager import (  # type: ignore
     clone_github_repo,
     extract_zip,
     get_code_churn,
     use_local_directory,
 )
-from backend.analysis_engine.risk_model import calculate_risk_score
-from backend.analysis_engine.smell_detector import detect_smells
-from backend.api.schemas import (
+from backend.analysis_engine.risk_model import calculate_risk_score  # type: ignore
+from backend.analysis_engine.smell_detector import detect_smells  # type: ignore
+from backend.api.schemas import (  # type: ignore
     AnalysisResult,
     CodeSmellResult,
     FileMetrics,
@@ -30,13 +30,20 @@ from backend.api.schemas import (
     ProjectOverview,
     RefactorSuggestion,
 )
-from fastapi import APIRouter, File, HTTPException, UploadFile
-from fastapi.responses import StreamingResponse
+from collections import OrderedDict
+from fastapi import APIRouter, File, HTTPException, UploadFile, BackgroundTasks  # type: ignore
+from fastapi.responses import StreamingResponse  # type: ignore
 
 router = APIRouter(prefix="/api", tags=["analysis"])
 
-# In-memory cache for analysis results
-_analysis_cache: Dict[str, AnalysisResult] = {}
+# In-memory cache for analysis results (max 20)
+MAX_CACHE_SIZE = 20
+_analysis_cache: OrderedDict[str, AnalysisResult] = OrderedDict()
+
+def _cache_result(analysis_id: str, result: AnalysisResult):
+    if len(_analysis_cache) >= MAX_CACHE_SIZE:
+        _analysis_cache.popitem(last=False)  # Remove oldest
+    _analysis_cache[analysis_id] = result
 
 
 # ── Core Analysis Pipeline ──────────────────────────────────────
@@ -185,27 +192,33 @@ def _run_analysis(analysis_id: str, repo_root: str, source_files: List[str]) -> 
             continue
 
     # Calculate Coupling (Ca, Ce, Instability)
+    # Using a more robust mapping: check if imported paths exist in our project
+    project_files = {f.file_path for f in all_file_metrics}
+    
     for f in all_file_metrics:
-        # Efferent Coupling (Ce) - count how many other project files are imported
-        imported_files = import_map.get(f.file_path, set())
-        for other in all_file_metrics:
-            if f.file_path == other.file_path: 
-                continue
-            # Check if other file's name or module name is in imports
-            other_base = os.path.basename(other.file_path).split('.')[0]
-            if other_base in imported_files or other.file_path in imported_files:
-                f.coupling_efferent += 1
-                other.coupling_afferent += 1
+        imported_names = import_map.get(f.file_path, set())
+        for imp in imported_names:
+            # Check if any project file matches this import name
+            for pf in project_files:
+                if pf == f.file_path: continue
+                pf_base = os.path.basename(pf).split('.')[0]
+                if imp == pf or imp == pf_base:
+                    f.coupling_efferent += 1
+                    # Find the target file metrics to increment Ca
+                    for target in all_file_metrics:
+                        if target.file_path == pf:
+                            target.coupling_afferent += 1
+                            break
     
     for f in all_file_metrics:
         total_coupling = float(f.coupling_afferent + f.coupling_efferent)
         if total_coupling > 0:
-            f.instability = round(float(f.coupling_efferent) / total_coupling, 2)
+            f.instability = float(f"{float(f.coupling_efferent) / total_coupling:.2f}")
 
     n_files = max(1, len(all_file_metrics))
     n_files_f = float(n_files)
-    avg_complexity = float(round(total_complexity / n_files_f, 2))
-    avg_maintainability = float(round(total_maintainability / n_files_f, 2))
+    avg_complexity = float(f"{float(total_complexity) / n_files_f:.2f}")
+    avg_maintainability = float(f"{float(total_maintainability) / n_files_f:.2f}")
 
     health = calculate_health_score(
         avg_complexity=avg_complexity,
@@ -239,15 +252,16 @@ def _run_analysis(analysis_id: str, repo_root: str, source_files: List[str]) -> 
         risk_distribution=risk_dist,
     )
 
-    _analysis_cache[analysis_id] = result
+    _cache_result(analysis_id, result)
     return result
 
 
 # ── Endpoints ───────────────────────────────────────────────────
 
 @router.post("/analyze/github", response_model=AnalysisResult)
-async def analyze_github(req: GitHubAnalysisRequest):
+async def analyze_github(req: GitHubAnalysisRequest, background_tasks: BackgroundTasks):
     """Clone and analyze a GitHub repository."""
+    from backend.analysis_engine.repo_manager import cleanup  # type: ignore
     try:
         analysis_id, repo_root, files = clone_github_repo(req.url, req.branch)
     except Exception as e:
@@ -256,12 +270,16 @@ async def analyze_github(req: GitHubAnalysisRequest):
     if not files:
         raise HTTPException(status_code=400, detail="No supported source files found.")
 
-    return _run_analysis(analysis_id, repo_root, files)
+    res = _run_analysis(analysis_id, repo_root, files)
+    # Schedule cleanup in background after result is returned
+    background_tasks.add_task(cleanup, analysis_id)
+    return res
 
 
 @router.post("/analyze/upload", response_model=AnalysisResult)
-async def analyze_upload(file: UploadFile = File(...)):
+async def analyze_upload(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
     """Upload a zip file and analyze it."""
+    from backend.analysis_engine.repo_manager import cleanup  # type: ignore
     if not file.filename or not file.filename.endswith(".zip"):
         raise HTTPException(status_code=400, detail="Please upload a .zip file.")
 
@@ -275,12 +293,15 @@ async def analyze_upload(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Failed to process zip file: {e}")
     finally:
-        os.unlink(tmp.name)
+        if os.path.exists(tmp.name):
+            os.unlink(tmp.name)
 
     if not files:
         raise HTTPException(status_code=400, detail="No supported source files found in archive.")
 
-    return _run_analysis(analysis_id, repo_root, files)
+    res = _run_analysis(analysis_id, repo_root, files)
+    background_tasks.add_task(cleanup, analysis_id)
+    return res
 
 
 @router.post("/analyze/local", response_model=AnalysisResult)
@@ -373,7 +394,7 @@ async def export_pdf(analysis_id: str):
 
     result = _analysis_cache[analysis_id]
 
-    from fpdf import FPDF
+    from fpdf import FPDF  # type: ignore
 
     pdf = FPDF()
     pdf.set_auto_page_break(auto=True, margin=15)

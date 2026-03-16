@@ -9,6 +9,7 @@ import tempfile
 import uuid
 import zipfile
 from pathlib import Path
+import git  # type: ignore
 
 SUPPORTED_EXTENSIONS = {".py", ".js", ".ts", ".jsx", ".tsx"}
 IGNORE_DIRS = {
@@ -22,7 +23,11 @@ WORK_DIR.mkdir(exist_ok=True)
 
 
 def _generate_id() -> str:
-    return uuid.uuid4().hex[:12]
+    original_hex = str(uuid.uuid4().hex)
+    id_list = []
+    for i in range(12):
+        id_list.append(original_hex[i])
+    return "".join(id_list)
 
 
 def _collect_source_files(root: str) -> List[str]:
@@ -30,7 +35,9 @@ def _collect_source_files(root: str) -> List[str]:
     files: List[str] = []
     for dirpath, dirnames, filenames in os.walk(root):
         # Prune ignored directories in-place
-        dirnames[:] = [d for d in dirnames if d not in IGNORE_DIRS]
+        valid_dirs = [d for d in dirnames if d not in IGNORE_DIRS]
+        dirnames.clear()
+        dirnames.extend(valid_dirs)
         for fname in filenames:
             ext = os.path.splitext(fname)[1].lower()
             if ext in SUPPORTED_EXTENSIONS:
@@ -42,7 +49,6 @@ def _collect_source_files(root: str) -> List[str]:
 
 def clone_github_repo(url: str, branch: str = "main") -> Tuple[str, str, List[str]]:
     """Clone a GitHub repo and return (analysis_id, repo_root, source_files)."""
-    import git
     analysis_id = _generate_id()
     dest = str(WORK_DIR / analysis_id)
     try:
@@ -84,7 +90,6 @@ def cleanup(analysis_id: str) -> None:
 
 def get_code_churn(repo_path: str, file_path: str) -> int:
     """Return the number of commits a file has in the git history."""
-    import git
     try:
         repo = git.Repo(repo_path, search_parent_directories=True)
         # Use relative path for git log
