@@ -30,7 +30,7 @@ frontend/eslint_report.json
 frontend/*.local
 npm-debug.log*
 yarn-debug.log*
-yarn-error.log*
+yarn-error.log*     
 pnpm-debug.log*
 
 # Other
