@@ -68,38 +68,10 @@ export default function FileDetailPage({ result }: Props) {
           </div>
         </div>
         <div className="metric-item">
-          <div className="metric-label">Functions</div>
-          <div className="metric-value">{file.num_functions}</div>
-        </div>
-        <div className="metric-item">
-          <div className="metric-label">Classes</div>
-          <div className="metric-value">{file.num_classes}</div>
-        </div>
-        <div className="metric-item">
-          <div className="metric-label">Max Nesting Depth</div>
-          <div className="metric-value" style={{ color: file.max_nesting_depth > 4 ? 'var(--warning)' : 'var(--text-primary)' }}>
-            {file.max_nesting_depth}
+          <div className="metric-label">Cognitive Complexity</div>
+          <div className="metric-value" style={{ color: file.cognitive_complexity > 15 ? 'var(--danger)' : 'var(--text-primary)' }}>
+            {file.cognitive_complexity}
           </div>
-        </div>
-        <div className="metric-item">
-          <div className="metric-label">Avg Function Length</div>
-          <div className="metric-value">{file.avg_function_length}</div>
-        </div>
-        <div className="metric-item">
-          <div className="metric-label">Max Function Length</div>
-          <div className="metric-value">{file.max_function_length}</div>
-        </div>
-        <div className="metric-item">
-          <div className="metric-label">Imports</div>
-          <div className="metric-value">{file.num_imports}</div>
-        </div>
-        <div className="metric-item">
-          <div className="metric-label">Branches</div>
-          <div className="metric-value">{file.num_branches}</div>
-        </div>
-        <div className="metric-item">
-          <div className="metric-label">Loops</div>
-          <div className="metric-value">{file.num_loops}</div>
         </div>
         <div className="metric-item">
           <div className="metric-label">Maintainability Index</div>
@@ -112,6 +84,34 @@ export default function FileDetailPage({ result }: Props) {
           <div className="metric-value" style={{ color: riskColor }}>
             {file.bug_risk_probability}%
           </div>
+        </div>
+        <div className="metric-item">
+          <div className="metric-label">Code Churn (Commits)</div>
+          <div className="metric-value">{file.code_churn}</div>
+        </div>
+        <div className="metric-item">
+          <div className="metric-label">Afferent Coupling (Ca)</div>
+          <div className="metric-value">{file.coupling_afferent}</div>
+        </div>
+        <div className="metric-item">
+          <div className="metric-label">Efferent Coupling (Ce)</div>
+          <div className="metric-value">{file.coupling_efferent}</div>
+        </div>
+        <div className="metric-item">
+          <div className="metric-label">Instability (I)</div>
+          <div className="metric-value">{file.instability}</div>
+        </div>
+        <div className="metric-item">
+          <div className="metric-label">Inheritance Depth</div>
+          <div className="metric-value">{file.inheritance_depth}</div>
+        </div>
+        <div className="metric-item">
+          <div className="metric-label">Halstead Volume</div>
+          <div className="metric-value">{Math.round(file.halstead_volume)}</div>
+        </div>
+        <div className="metric-item">
+          <div className="metric-label">Halstead Effort</div>
+          <div className="metric-value">{Math.round(file.halstead_effort)}</div>
         </div>
       </div>
 
@@ -127,8 +127,8 @@ export default function FileDetailPage({ result }: Props) {
                 <th>Name</th>
                 <th>Lines</th>
                 <th>LOC</th>
-                <th>Complexity</th>
-                <th>Nesting</th>
+                <th>Cyclomatic</th>
+                <th>Cognitive</th>
                 <th>Params</th>
               </tr>
             </thead>
@@ -141,7 +141,9 @@ export default function FileDetailPage({ result }: Props) {
                   <td style={{ color: fn.complexity > 10 ? 'var(--danger)' : 'var(--text-primary)' }}>
                     {fn.complexity}
                   </td>
-                  <td>{fn.nesting_depth}</td>
+                  <td style={{ color: fn.cognitive_complexity > 15 ? 'var(--danger)' : 'var(--text-primary)' }}>
+                    {fn.cognitive_complexity}
+                  </td>
                   <td>{fn.parameters}</td>
                 </tr>
               ))}

@@ -8,6 +8,10 @@ export interface FunctionMetrics {
   complexity: number;
   nesting_depth: number;
   parameters: number;
+  cognitive_complexity: number;
+  halstead_volume: number;
+  halstead_difficulty: number;
+  halstead_effort: number;
 }
 
 export interface CodeSmellResult {
@@ -45,6 +49,15 @@ export interface FileMetrics {
   risk_score: number;
   risk_level: string;
   bug_risk_probability: number;
+  cognitive_complexity: number;
+  halstead_volume: number;
+  halstead_difficulty: number;
+  halstead_effort: number;
+  coupling_afferent: number;
+  coupling_efferent: number;
+  instability: number;
+  inheritance_depth: number;
+  code_churn: number;
   functions: FunctionMetrics[];
   code_smells: CodeSmellResult[];
   refactor_suggestions: RefactorSuggestion[];

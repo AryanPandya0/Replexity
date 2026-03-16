@@ -72,7 +72,7 @@ export default function DashboardPage({ result }: Props) {
   // Top 15 files for chart
   const topFiles = files.slice(0, 15);
 
-  /* ── Complexity Bar Chart ──────────────────────────────── */
+  /* ── Complexity Bar Charts ────────────────────────────── */
   const complexityData = {
     labels: topFiles.map((f) => {
       const parts = f.file_path.split(/[/\\]/);
@@ -80,22 +80,20 @@ export default function DashboardPage({ result }: Props) {
     }),
     datasets: [
       {
-        label: 'Cyclomatic Complexity',
+        label: 'Cyclomatic',
         data: topFiles.map((f) => f.cyclomatic_complexity),
-        backgroundColor: topFiles.map((f) =>
-          f.risk_level === 'critical' ? 'rgba(239,68,68,0.7)' :
-          f.risk_level === 'high' ? 'rgba(249,115,22,0.7)' :
-          f.risk_level === 'medium' ? 'rgba(245,158,11,0.7)' :
-          'rgba(16,185,129,0.7)'
-        ),
-        borderColor: topFiles.map((f) =>
-          f.risk_level === 'critical' ? '#ef4444' :
-          f.risk_level === 'high' ? '#f97316' :
-          f.risk_level === 'medium' ? '#f59e0b' :
-          '#10b981'
-        ),
+        backgroundColor: 'rgba(99,102,241,0.7)',
+        borderColor: '#6366f1',
         borderWidth: 1,
-        borderRadius: 6,
+        borderRadius: 4,
+      },
+      {
+        label: 'Cognitive',
+        data: topFiles.map((f) => f.cognitive_complexity),
+        backgroundColor: 'rgba(236,72,153,0.7)',
+        borderColor: '#ec4899',
+        borderWidth: 1,
+        borderRadius: 4,
       },
     ],
   };
@@ -124,29 +122,53 @@ export default function DashboardPage({ result }: Props) {
     ],
   };
 
+  /* ── Coupling Bar Chart ─────────────────────────────── */
+  const couplingData = {
+    labels: topFiles.map((f) => {
+      const parts = f.file_path.split(/[/\\]/);
+      return parts[parts.length - 1];
+    }),
+    datasets: [
+      {
+        label: 'Afferent (Ca)',
+        data: topFiles.map((f) => f.coupling_afferent),
+        backgroundColor: 'rgba(16,185,129,0.7)',
+        borderColor: '#10b981',
+        borderWidth: 1,
+        borderRadius: 4,
+      },
+      {
+        label: 'Efferent (Ce)',
+        data: topFiles.map((f) => f.coupling_efferent),
+        backgroundColor: 'rgba(249,115,22,0.7)',
+        borderColor: '#f97316',
+        borderWidth: 1,
+        borderRadius: 4,
+      },
+    ],
+  };
+
   /* ── Maintainability Line Chart ────────────────────────── */
   const maintData = {
     labels: topFiles.map((_, i) => `F${i + 1}`),
     datasets: [
       {
-        label: 'Maintainability Index',
+        label: 'Maintainability',
         data: topFiles.map((f) => f.maintainability_index),
         borderColor: '#6366f1',
         backgroundColor: 'rgba(99,102,241,0.1)',
         fill: true,
         tension: 0.4,
         pointRadius: 4,
-        pointBackgroundColor: '#6366f1',
       },
       {
-        label: 'Bug Risk %',
-        data: topFiles.map((f) => f.bug_risk_probability),
-        borderColor: '#ef4444',
-        backgroundColor: 'rgba(239,68,68,0.1)',
+        label: 'Instability',
+        data: topFiles.map((f) => f.instability * 100), // scale to 100 for visibility
+        borderColor: '#f59e0b',
+        backgroundColor: 'rgba(245,158,11,0.1)',
         fill: true,
         tension: 0.4,
         pointRadius: 4,
-        pointBackgroundColor: '#ef4444',
       },
     ],
   };
@@ -271,8 +293,8 @@ export default function DashboardPage({ result }: Props) {
       <div className="charts-grid">
         <div className="chart-container">
           <div className="chart-header">
-            <div className="chart-title">Complexity by File</div>
-            <div className="chart-subtitle">Top {topFiles.length} files by risk score</div>
+            <div className="chart-title">Complexity Analysis</div>
+            <div className="chart-subtitle">Cyclomatic vs Cognitive Complexity</div>
           </div>
           <div style={{ height: 280 }}>
             <Bar data={complexityData} options={chartOptions} />
@@ -280,11 +302,41 @@ export default function DashboardPage({ result }: Props) {
         </div>
         <div className="chart-container">
           <div className="chart-header">
-            <div className="chart-title">Maintainability & Bug Risk</div>
-            <div className="chart-subtitle">Correlation between maintainability and bug probability</div>
+            <div className="chart-title">Coupling Analysis</div>
+            <div className="chart-subtitle">Incoming vs Outgoing dependencies</div>
           </div>
           <div style={{ height: 280 }}>
+            <Bar data={couplingData} options={chartOptions} />
+          </div>
+        </div>
+      </div>
+
+      {/* Maintainability & Instability row */}
+      <div className="charts-grid">
+        <div className="chart-container">
+          <div className="chart-header">
+            <div className="chart-title">Maintainability & Instability</div>
+            <div className="chart-subtitle">Stability trends across top files (Instability scaled x100)</div>
+          </div>
+          <div style={{ height: 250 }}>
             <Line data={maintData} options={chartOptions} />
+          </div>
+        </div>
+        <div className="chart-container">
+           {/* Placeholder or small metrics */}
+           <div className="chart-header">
+            <div className="chart-title">Summary Insights</div>
+          </div>
+          <div style={{ padding: '1rem', color: 'var(--text-secondary)' }}>
+            <div style={{ marginBottom: '1rem' }}>
+              <span style={{ color: 'var(--accent)' }}>Most Complex:</span> {files.length > 0 ? files[0].file_path : 'N/A'}
+            </div>
+            <div style={{ marginBottom: '1rem' }}>
+              <span style={{ color: 'var(--success)' }}>Most Stable:</span> {files.length > 0 ? files.reduce((prev, curr) => (prev.instability < curr.instability ? prev : curr)).file_path : 'N/A'}
+            </div>
+            <div>
+              <span style={{ color: 'var(--danger)' }}>Highest Churn:</span> {files.length > 0 ? files.reduce((prev, curr) => (prev.code_churn > curr.code_churn ? prev : curr)).file_path : 'N/A'}
+            </div>
           </div>
         </div>
       </div>
@@ -339,14 +391,13 @@ export default function DashboardPage({ result }: Props) {
           <table className="data-table">
             <thead>
               <tr>
-                <th>File</th>
+                <th>Name</th>
                 <th>Language</th>
                 <th>LOC</th>
-                <th>Functions</th>
                 <th>Complexity</th>
+                <th>Cognitive</th>
                 <th>Nesting</th>
-                <th>Maintainability</th>
-                <th>Bug Risk</th>
+                <th>Churn</th>
                 <th>Risk Score</th>
               </tr>
             </thead>
@@ -356,11 +407,12 @@ export default function DashboardPage({ result }: Props) {
                   <td><span className="file-name">{f.file_path}</span></td>
                   <td style={{ textTransform: 'capitalize' }}>{f.language}</td>
                   <td>{f.loc}</td>
-                  <td>{f.num_functions}</td>
                   <td>{f.cyclomatic_complexity}</td>
+                  <td style={{ color: f.cognitive_complexity > 15 ? 'var(--danger)' : 'var(--text-primary)' }}>
+                    {f.cognitive_complexity}
+                  </td>
                   <td>{f.max_nesting_depth}</td>
-                  <td>{f.maintainability_index}</td>
-                  <td>{f.bug_risk_probability}%</td>
+                  <td>{f.code_churn}</td>
                   <td>
                     <span className={`risk-badge ${f.risk_level}`}>
                       <span className={`risk-dot ${f.risk_level}`}></span>
