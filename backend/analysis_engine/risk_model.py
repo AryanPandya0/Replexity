@@ -30,15 +30,17 @@ def calculate_risk_score(
     max_nesting_depth: int,
     avg_function_length: float,
     num_branches: int,
+    cognitive_complexity: float = 0.0,
     num_functions: int = 1,
 ) -> Tuple[float, str]:
     """
     Calculate Risk Score (0-100) for a file.
 
     Risk Score =
-      (0.35 × normalized complexity)
+      (0.20 × normalized complexity)
+    + (0.20 × normalized cognitive complexity)
     + (0.20 × LOC score)
-    + (0.20 × nesting depth score)
+    + (0.15 × nesting depth score)
     + (0.15 × function length score)
     + (0.10 × branch density)
 
@@ -46,6 +48,7 @@ def calculate_risk_score(
     """
     # Normalize each metric to 0-100
     complexity_score = _normalize(cyclomatic_complexity, 1, 30)
+    cognitive_score = _normalize(cognitive_complexity, 0, 50)
     loc_score = _normalize(loc, 0, 500)
     nesting_score = _normalize(max_nesting_depth, 0, 8)
     func_length_score = _normalize(avg_function_length, 0, 100)
@@ -55,12 +58,13 @@ def calculate_risk_score(
     branch_score = _normalize(branch_density, 0, 10)
 
     risk_score = (
-        0.35 * complexity_score
+        0.20 * complexity_score
+        + 0.20 * cognitive_score
         + 0.20 * loc_score
-        + 0.20 * nesting_score
+        + 0.15 * nesting_score
         + 0.15 * func_length_score
         + 0.10 * branch_score
     )
 
-    risk_score = round(max(0.0, min(100.0, risk_score)), 2)
+    risk_score = float(round(max(0.0, min(100.0, risk_score)), 2))
     return risk_score, _risk_level(risk_score)

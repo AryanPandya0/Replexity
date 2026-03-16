@@ -21,6 +21,9 @@ class FunctionInfo:
     complexity: int = 1
     branches: int = 0
     loops: int = 0
+    cognitive_complexity: int = 0
+    operators: List[str] = field(default_factory=list)
+    operands: List[str] = field(default_factory=list)
 
 
 @dataclass
@@ -36,6 +39,8 @@ class ParseResult:
     num_branches: int = 0
     num_loops: int = 0
     max_nesting_depth: int = 0
+    inheritance_depth: int = 0
+    imports: Set[str] = field(default_factory=set)
     functions: list = field(default_factory=list)
 
 
@@ -65,6 +70,77 @@ class _PythonNestingVisitor(ast.NodeVisitor):
 
     def visit(self, node):
         self._visit_block(node)
+
+
+class _PythonCognitiveVisitor(ast.NodeVisitor):
+    """Computes Cognitive Complexity by weighting increments of control flow."""
+
+    def __init__(self):
+        self.complexity = 0
+        self.nesting = 0
+
+    def visit_Block(self, nodes):
+        for node in nodes:
+            self.visit(node)
+
+    def visit_If(self, node):
+        self.complexity += 1 + self.nesting
+        self.nesting += 1
+        self.visit(node.test)
+        self.visit_Block(node.body)
+        if node.orelse:
+            # else if doesn't increment nesting further but else/elif does increment complexity
+            if isinstance(node.orelse[0], ast.If):
+                # elif: handled by the next visit_If
+                self.nesting -= 1 # adjust to stay same level
+                self.visit_Block(node.orelse)
+                self.nesting += 1
+            else:
+                self.complexity += 1
+                self.visit_Block(node.orelse)
+        self.nesting -= 1
+
+    def visit_For(self, node):
+        self.complexity += 1 + self.nesting
+        self.nesting += 1
+        self.visit_Block(node.body)
+        self.nesting -= 1
+
+    def visit_While(self, node):
+        self.complexity += 1 + self.nesting
+        self.nesting += 1
+        self.visit_Block(node.body)
+        self.nesting -= 1
+
+    def visit_ExceptHandler(self, node):
+        self.complexity += 1 + self.nesting
+        self.nesting += 1
+        self.visit_Block(node.body)
+        self.nesting -= 1
+
+    def visit_BoolOp(self, node):
+        # Sequences of boolean operators increment complexity
+        self.complexity += len(node.values) - 1
+        for value in node.values:
+            self.visit(value)
+
+
+def _get_halstead_data(node: ast.AST) -> Tuple[List[str], List[str]]:
+    """Extract operators and operands for Halstead metrics."""
+    operators = []
+    operands = []
+    for child in ast.walk(node):
+        if isinstance(child, (ast.Add, ast.Sub, ast.Mult, ast.Div, ast.Mod, ast.Pow, ast.LShift, ast.RShift, ast.BitOr, ast.BitXor, ast.BitAnd, ast.FloorDiv)):
+            operators.append(child.__class__.__name__)
+        elif isinstance(child, (ast.And, ast.Or, ast.Not)):
+            operators.append(child.__class__.__name__)
+        elif isinstance(child, (ast.Eq, ast.NotEq, ast.Lt, ast.LtE, ast.Gt, ast.GtE, ast.Is, ast.IsNot, ast.In, ast.NotIn)):
+            operators.append(child.__class__.__name__)
+        elif isinstance(child, (ast.Name, ast.Attribute)):
+            operands.append(getattr(child, "id", getattr(child, "attr", "")))
+        elif isinstance(child, ast.Constant):
+            operands.append(str(child.value))
+    return operators, operands
 
 
 def _get_func_nesting(node: ast.AST) -> int:
@@ -131,10 +207,16 @@ def parse_python(file_path: str) -> ParseResult:
     # Extract functions
     for node in ast.walk(tree):
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-            end_line = getattr(node, "end_lineno", node.lineno + 1)
+            end_line = getattr(node, "end_lineno", node.lineno)
             func_loc = max(1, end_line - node.lineno + 1)
             complexity, branches, loops = _count_func_complexity(node)
             nesting = _get_func_nesting(node)
+            
+            cog_visitor = _PythonCognitiveVisitor()
+            cog_visitor.visit(node)
+            
+            operators, operands = _get_halstead_data(node)
+            
             fi = FunctionInfo(
                 name=node.name,
                 line_start=node.lineno,
@@ -145,9 +227,28 @@ def parse_python(file_path: str) -> ParseResult:
                 complexity=complexity,
                 branches=branches,
                 loops=loops,
+                cognitive_complexity=cog_visitor.complexity,
+                operators=operators,
+                operands=operands
             )
             result.functions.append(fi)
             result.num_functions += 1
+
+    # Extract imports for coupling
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for name in node.names:
+                result.imports.add(name.name)
+        elif isinstance(node, ast.ImportFrom):
+            if node.module:
+                result.imports.add(str(node.module))
+
+    # Inheritance Depth (max for this file)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ClassDef):
+            # We estimate inheritance depth by counting base classes
+            # In a shallow view, we only see direct parents
+            result.inheritance_depth = max(result.inheritance_depth, len(node.bases))
 
     return result
 
@@ -226,6 +327,13 @@ def _extract_js_functions(source: str, lines: List[str]) -> List[FunctionInfo]:
             loops = len(_JS_LOOP_KEYWORDS.findall(func_source))
             complexity = 1 + branches + loops
             nesting = _js_nesting_depth(func_source)
+            
+            # Heuristic Cogntive Complexity
+            cog_complexity = branches + (loops * 2) + (nesting * 1.5)
+            
+            # Simple Halstead data extraction via regex
+            operators = _JS_BRANCH_KEYWORDS.findall(func_source) + _JS_LOOP_KEYWORDS.findall(func_source)
+            operands = re.findall(r"\w+", func_source)
 
             # Count parameters
             params_match = re.search(r"\(([^)]*)\)", match.group(0))
@@ -243,6 +351,9 @@ def _extract_js_functions(source: str, lines: List[str]) -> List[FunctionInfo]:
                 complexity=complexity,
                 branches=branches,
                 loops=loops,
+                cognitive_complexity=int(cog_complexity),
+                operators=operators,
+                operands=operands
             ))
 
     return functions

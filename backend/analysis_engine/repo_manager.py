@@ -80,3 +80,16 @@ def cleanup(analysis_id: str) -> None:
     dest = WORK_DIR / analysis_id
     if dest.exists():
         shutil.rmtree(dest, ignore_errors=True)
+
+
+def get_code_churn(repo_path: str, file_path: str) -> int:
+    """Return the number of commits a file has in the git history."""
+    import git
+    try:
+        repo = git.Repo(repo_path, search_parent_directories=True)
+        # Use relative path for git log
+        rel_path = os.path.relpath(file_path, repo.working_dir)
+        commits = list(repo.iter_commits(paths=rel_path))
+        return len(commits)
+    except Exception:
+        return 0
