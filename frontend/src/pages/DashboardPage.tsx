@@ -1,4 +1,4 @@
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -24,37 +24,12 @@ interface Props {
   result: AnalysisResult | null;
 }
 
-function HealthCircle({ score }: { score: number }) {
-  const radius = 50;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (score / 100) * circumference;
-  const color = score >= 70 ? '#10b981' : score >= 40 ? '#f59e0b' : '#ef4444';
-
-  return (
-    <div className="health-circle-container">
-      <div className="health-circle">
-        <svg viewBox="0 0 120 120">
-          <circle cx="60" cy="60" r={radius} className="track" />
-          <circle
-            cx="60" cy="60" r={radius}
-            className="progress"
-            stroke={color}
-            strokeDasharray={circumference}
-            strokeDashoffset={offset}
-          />
-        </svg>
-        <div className="health-score-value" style={{ color }}>
-          {Math.round(score)}
-        </div>
-      </div>
-      <span className="health-score-label">Health Score</span>
-    </div>
-  );
-}
+import { HealthCircle } from '../components/dashboard/HealthCircle';
+import { StatCards } from '../components/dashboard/StatCards';
+import { RiskHeatmap } from '../components/dashboard/RiskHeatmap';
+import { FileRankingTable } from '../components/dashboard/FileRankingTable';
 
 export default function DashboardPage({ result }: Props) {
-  const navigate = useNavigate();
-
   if (!result) {
     return (
       <div className="empty-state">
@@ -204,75 +179,42 @@ export default function DashboardPage({ result }: Props) {
     cutout: '65%',
   };
 
-  /* ── Heatmap ───────────────────────────────────────────── */
-  const heatmapFiles = files.slice(0, 60);
-  const getCellColor = (risk: number) => {
-    if (risk >= 75) return 'rgba(239,68,68,0.85)';
-    if (risk >= 50) return 'rgba(249,115,22,0.8)';
-    if (risk >= 25) return 'rgba(245,158,11,0.75)';
-    return 'rgba(16,185,129,0.7)';
-  };
+  /* ── Dashboard Sub-Components ──────────────────────────── */
 
   return (
     <div className="page-content">
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+      <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 800 }}>{result.project_name}</h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-            Analysis ID: <code style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent-hover)' }}>{result.analysis_id}</code>
+          <h1 className="text-2xl font-extrabold">{result.project_name}</h1>
+          <p className="text-[#94a3b8] text-sm">
+            Analysis ID: <code className="font-mono text-[var(--accent-hover)]">{result.analysis_id}</code>
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
+        <div className="flex gap-3">
           <Link to="/export" className="btn btn-secondary btn-sm">📥 Export</Link>
           <Link to="/analyze" className="btn btn-ghost btn-sm">New Analysis</Link>
         </div>
       </div>
 
       {/* Stat Cards */}
-      <div className="stats-grid">
-        <div className="stat-card accent">
-          <div className="stat-icon accent">📁</div>
-          <div className="card-title">Files Analyzed</div>
-          <div className="card-value">{overview.total_files}</div>
-        </div>
-        <div className="stat-card info">
-          <div className="stat-icon info">⚡</div>
-          <div className="card-title">Total Functions</div>
-          <div className="card-value">{overview.total_functions}</div>
-        </div>
-        <div className="stat-card warning">
-          <div className="stat-icon warning">📏</div>
-          <div className="card-title">Total LOC</div>
-          <div className="card-value">{overview.total_loc.toLocaleString()}</div>
-        </div>
-        <div className="stat-card success">
-          <div className="stat-icon success">🧮</div>
-          <div className="card-title">Avg Complexity</div>
-          <div className="card-value">{overview.avg_complexity}</div>
-        </div>
-        <div className="stat-card danger">
-          <div className="stat-icon danger">🛡️</div>
-          <div className="card-title">Code Smells</div>
-          <div className="card-value">{result.code_smells.length}</div>
-        </div>
-      </div>
+      <StatCards result={result} />
 
       {/* Health Score + Risk Doughnut row */}
       <div className="charts-grid">
-        <div className="chart-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around' }}>
+        <div className="chart-container flex items-center justify-around">
           <HealthCircle score={overview.health_score} />
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>LANGUAGES</div>
+          <div className="text-center">
+            <div className="text-xs text-[var(--text-muted)] mb-2 uppercase tracking-wide">Languages</div>
             {Object.entries(overview.languages).map(([lang, count]) => (
-              <div key={lang} style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
-                {lang}: <strong style={{ color: 'var(--text-primary)' }}>{count}</strong> files
+              <div key={lang} className="text-sm text-[var(--text-secondary)] mb-1">
+                {lang}: <strong className="text-[var(--text-primary)]">{count}</strong> files
               </div>
             ))}
-            <div style={{ marginTop: '0.75rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-              AVG MAINTAINABILITY
+            <div className="mt-3 text-xs text-[var(--text-muted)] uppercase tracking-wide">
+              Avg Maintainability
             </div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: overview.avg_maintainability >= 60 ? 'var(--success)' : 'var(--warning)' }}>
+            <div className={`text-2xl font-extrabold ${overview.avg_maintainability >= 60 ? 'text-[var(--success)]' : 'text-[var(--warning)]'}`}>
               {overview.avg_maintainability}
             </div>
           </div>
@@ -282,7 +224,7 @@ export default function DashboardPage({ result }: Props) {
             <div className="chart-title">Risk Distribution</div>
             <div className="chart-subtitle">Files by risk level</div>
           </div>
-          <div style={{ height: 220 }}>
+          <div className="h-[220px]">
             <Doughnut data={riskData} options={doughnutOptions} />
           </div>
         </div>
@@ -295,7 +237,7 @@ export default function DashboardPage({ result }: Props) {
             <div className="chart-title">Complexity Analysis</div>
             <div className="chart-subtitle">Cyclomatic vs Cognitive Complexity</div>
           </div>
-          <div style={{ height: 280 }}>
+          <div className="h-[280px]">
             <Bar data={complexityData} options={chartOptions} />
           </div>
         </div>
@@ -304,7 +246,7 @@ export default function DashboardPage({ result }: Props) {
             <div className="chart-title">Coupling Analysis</div>
             <div className="chart-subtitle">Incoming vs Outgoing dependencies</div>
           </div>
-          <div style={{ height: 280 }}>
+          <div className="h-[280px]">
             <Bar data={couplingData} options={chartOptions} />
           </div>
         </div>
@@ -317,7 +259,7 @@ export default function DashboardPage({ result }: Props) {
             <div className="chart-title">Maintainability & Instability</div>
             <div className="chart-subtitle">Stability trends across top files (Instability scaled x100)</div>
           </div>
-          <div style={{ height: 250 }}>
+          <div className="h-[250px]">
             <Line data={maintData} options={chartOptions} />
           </div>
         </div>
@@ -326,104 +268,25 @@ export default function DashboardPage({ result }: Props) {
            <div className="chart-header">
             <div className="chart-title">Summary Insights</div>
           </div>
-          <div style={{ padding: '1rem', color: 'var(--text-secondary)' }}>
-            <div style={{ marginBottom: '1rem' }}>
-              <span style={{ color: 'var(--accent)' }}>Most Complex:</span> {files.length > 0 ? files[0].file_path : 'N/A'}
+          <div className="p-4 text-[var(--text-secondary)]">
+            <div className="mb-4">
+              <span className="text-[var(--accent)] font-semibold">Most Complex:</span> {files.length > 0 ? files[0].file_path : 'N/A'}
             </div>
-            <div style={{ marginBottom: '1rem' }}>
-              <span style={{ color: 'var(--success)' }}>Most Stable:</span> {files.length > 0 ? files.reduce((prev, curr) => (prev.instability < curr.instability ? prev : curr)).file_path : 'N/A'}
+            <div className="mb-4">
+              <span className="text-[var(--success)] font-semibold">Most Stable:</span> {files.length > 0 ? files.reduce((prev, curr) => (prev.instability < curr.instability ? prev : curr)).file_path : 'N/A'}
             </div>
             <div>
-              <span style={{ color: 'var(--danger)' }}>Highest Churn:</span> {files.length > 0 ? files.reduce((prev, curr) => (prev.code_churn > curr.code_churn ? prev : curr)).file_path : 'N/A'}
+              <span className="text-[var(--danger)] font-semibold">Highest Churn:</span> {files.length > 0 ? files.reduce((prev, curr) => (prev.code_churn > curr.code_churn ? prev : curr)).file_path : 'N/A'}
             </div>
           </div>
         </div>
       </div>
 
       {/* Heatmap */}
-      <div className="chart-container" style={{ marginBottom: '1.5rem' }}>
-        <div className="chart-header">
-          <div className="chart-title">🔥 Risk Heatmap</div>
-          <div className="chart-subtitle">Each cell represents a file — color indicates risk level</div>
-        </div>
-        <div className="heatmap-grid">
-          {heatmapFiles.map((f) => {
-            const parts = f.file_path.split(/[/\\]/);
-            const shortName = parts[parts.length - 1];
-            return (
-              <div
-                key={f.file_path}
-                className="heatmap-cell"
-                style={{ background: getCellColor(f.risk_score) }}
-                onClick={() => navigate(`/file/${encodeURIComponent(f.file_path)}`)}
-                title={`${f.file_path}\nRisk: ${f.risk_score}\nCC: ${f.cyclomatic_complexity}\nLOC: ${f.loc}`}
-              >
-                <span className="cell-score">{Math.round(f.risk_score)}</span>
-                <span className="cell-name">{shortName}</span>
-              </div>
-            );
-          })}
-        </div>
-        <div style={{ display: 'flex', gap: '1.5rem', justifyContent: 'center', marginTop: '1rem' }}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            <span style={{ width: 12, height: 12, borderRadius: 3, background: 'rgba(16,185,129,0.7)' }}></span> Low
-          </span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            <span style={{ width: 12, height: 12, borderRadius: 3, background: 'rgba(245,158,11,0.75)' }}></span> Medium
-          </span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            <span style={{ width: 12, height: 12, borderRadius: 3, background: 'rgba(249,115,22,0.8)' }}></span> High
-          </span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            <span style={{ width: 12, height: 12, borderRadius: 3, background: 'rgba(239,68,68,0.85)' }}></span> Critical
-          </span>
-        </div>
-      </div>
+      <RiskHeatmap files={files} />
 
       {/* File Ranking Table */}
-      <div className="chart-container" style={{ marginBottom: '1.5rem' }}>
-        <div className="chart-header">
-          <div className="chart-title">📋 File Rankings</div>
-          <div className="chart-subtitle">All analyzed files sorted by risk score</div>
-        </div>
-        <div style={{ overflowX: 'auto' }}>
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Language</th>
-                <th>LOC</th>
-                <th>Complexity</th>
-                <th>Cognitive</th>
-                <th>Nesting</th>
-                <th>Churn</th>
-                <th>Risk Score</th>
-              </tr>
-            </thead>
-            <tbody>
-              {files.map((f) => (
-                <tr key={f.file_path} onClick={() => navigate(`/file/${encodeURIComponent(f.file_path)}`)}>
-                  <td><span className="file-name">{f.file_path}</span></td>
-                  <td style={{ textTransform: 'capitalize' }}>{f.language}</td>
-                  <td>{f.loc}</td>
-                  <td>{f.cyclomatic_complexity}</td>
-                  <td style={{ color: f.cognitive_complexity > 15 ? 'var(--danger)' : 'var(--text-primary)' }}>
-                    {f.cognitive_complexity}
-                  </td>
-                  <td>{f.max_nesting_depth}</td>
-                  <td>{f.code_churn}</td>
-                  <td>
-                    <span className={`risk-badge ${f.risk_level}`}>
-                      <span className={`risk-dot ${f.risk_level}`}></span>
-                      {f.risk_score}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <FileRankingTable files={files} />
     </div>
   );
 }
