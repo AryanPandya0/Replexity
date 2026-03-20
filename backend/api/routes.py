@@ -33,8 +33,36 @@ from backend.api.schemas import (  # type: ignore
 from collections import OrderedDict
 from fastapi import APIRouter, File, HTTPException, UploadFile, BackgroundTasks  # type: ignore
 from fastapi.responses import StreamingResponse  # type: ignore
+import uuid
+from enum import Enum
+from typing import Optional
 
 router = APIRouter(prefix="/api", tags=["analysis"])
+
+class TaskStatus(str, Enum):
+    PENDING = "pending"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+class AnalysisTask:
+    def __init__(self, task_id: str):
+        self.task_id = task_id
+        self.status = TaskStatus.PENDING
+        self.result: Optional[AnalysisResult] = None
+        self.error: Optional[str] = None
+
+# In-memory task store
+MAX_TASK_STORE_SIZE = 100
+_task_store: OrderedDict[str, AnalysisTask] = OrderedDict()
+
+def _create_task() -> AnalysisTask:
+    if len(_task_store) >= MAX_TASK_STORE_SIZE:
+        _task_store.popitem(last=False)
+    task_id = str(uuid.uuid4())
+    task = AnalysisTask(task_id)
+    _task_store[task_id] = task
+    return task
 
 # In-memory cache for analysis results (max 20)
 MAX_CACHE_SIZE = 20
@@ -258,64 +286,100 @@ def _run_analysis(analysis_id: str, repo_root: str, source_files: List[str]) -> 
 
 # ── Endpoints ───────────────────────────────────────────────────
 
-@router.post("/analyze/github", response_model=AnalysisResult)
+@router.post("/analyze/github")
 async def analyze_github(req: GitHubAnalysisRequest, background_tasks: BackgroundTasks):
-    """Clone and analyze a GitHub repository."""
-    from backend.analysis_engine.repo_manager import cleanup  # type: ignore
-    try:
-        analysis_id, repo_root, files = clone_github_repo(req.url, req.branch)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Failed to clone repository: {e}")
+    task = _create_task()
+    task.status = TaskStatus.PROCESSING
+    
+    def _background_job():
+        from backend.analysis_engine.repo_manager import cleanup  # type: ignore
+        try:
+            analysis_id, repo_root, files = clone_github_repo(req.url, req.branch)
+            if not files:
+                raise Exception("No supported source files found.")
+            res = _run_analysis(analysis_id, repo_root, files)
+            task.result = res
+            task.status = TaskStatus.COMPLETED
+        except Exception as e:
+            task.status = TaskStatus.FAILED
+            task.error = str(e)
+        finally:
+            if 'analysis_id' in locals():
+                cleanup(analysis_id)
 
-    if not files:
-        raise HTTPException(status_code=400, detail="No supported source files found.")
-
-    res = _run_analysis(analysis_id, repo_root, files)
-    # Schedule cleanup in background after result is returned
-    background_tasks.add_task(cleanup, analysis_id)
-    return res
+    background_tasks.add_task(_background_job)
+    return {"task_id": task.task_id, "status": task.status}
 
 
-@router.post("/analyze/upload", response_model=AnalysisResult)
+@router.post("/analyze/upload")
 async def analyze_upload(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
-    """Upload a zip file and analyze it."""
-    from backend.analysis_engine.repo_manager import cleanup  # type: ignore
     if not file.filename or not file.filename.endswith(".zip"):
         raise HTTPException(status_code=400, detail="Please upload a .zip file.")
 
-    # Save the uploaded file
+    task = _create_task()
+    task.status = TaskStatus.PROCESSING
+
+    # Save the uploaded file inline before responding to the user
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".zip", mode="wb")
-    try:
-        content = await file.read()
-        tmp.write(content)  # type: ignore
-        tmp.close()
-        analysis_id, repo_root, files = extract_zip(tmp.name)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Failed to process zip file: {e}")
-    finally:
-        if os.path.exists(tmp.name):
-            os.unlink(tmp.name)
+    content = await file.read()
+    tmp.write(content)  # type: ignore
+    tmp.close()
 
-    if not files:
-        raise HTTPException(status_code=400, detail="No supported source files found in archive.")
+    def _background_job():
+        from backend.analysis_engine.repo_manager import cleanup  # type: ignore
+        try:
+            analysis_id, repo_root, files = extract_zip(tmp.name)
+            if not files:
+                raise Exception("No supported source files found in archive.")
+            res = _run_analysis(analysis_id, repo_root, files)
+            task.result = res
+            task.status = TaskStatus.COMPLETED
+        except Exception as e:
+            task.status = TaskStatus.FAILED
+            task.error = str(e)
+        finally:
+            if os.path.exists(tmp.name):
+                os.unlink(tmp.name)
+            if 'analysis_id' in locals():
+                cleanup(analysis_id)
 
-    res = _run_analysis(analysis_id, repo_root, files)
-    background_tasks.add_task(cleanup, analysis_id)
-    return res
+    background_tasks.add_task(_background_job)
+    return {"task_id": task.task_id, "status": task.status}
 
 
-@router.post("/analyze/local", response_model=AnalysisResult)
-async def analyze_local(req: LocalAnalysisRequest):
-    """Analyze a local directory."""
-    try:
-        analysis_id, repo_root, files = use_local_directory(req.path)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+@router.post("/analyze/local")
+async def analyze_local(req: LocalAnalysisRequest, background_tasks: BackgroundTasks):
+    task = _create_task()
+    task.status = TaskStatus.PROCESSING
 
-    if not files:
-        raise HTTPException(status_code=400, detail="No supported source files found.")
+    def _background_job():
+        try:
+            analysis_id, repo_root, files = use_local_directory(req.path)
+            if not files:
+                raise Exception("No supported source files found.")
+            res = _run_analysis(analysis_id, repo_root, files)
+            task.result = res
+            task.status = TaskStatus.COMPLETED
+        except Exception as e:
+            task.status = TaskStatus.FAILED
+            task.error = str(e)
 
-    return _run_analysis(analysis_id, repo_root, files)
+    background_tasks.add_task(_background_job)
+    return {"task_id": task.task_id, "status": task.status}
+
+
+@router.get("/status/{task_id}")
+async def get_task_status(task_id: str):
+    task = _task_store.get(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    return {
+        "task_id": task.task_id,
+        "status": task.status,
+        "result": task.result,
+        "error": task.error
+    }
 
 
 @router.get("/results/{analysis_id}", response_model=AnalysisResult)

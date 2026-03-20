@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { analyzeGitHub, analyzeUpload, analyzeLocal } from '../api';
+import { analyzeGitHub, analyzeUpload, analyzeLocal, checkAnalysisStatus } from '../api';
 import type { AnalysisResult } from '../types';
 
 type Tab = 'github' | 'upload' | 'local';
@@ -30,30 +30,49 @@ export default function AnalysisInputPage({ onResult }: Props) {
     setError('');
     setLoading(true);
     try {
-      let result: AnalysisResult;
+      let taskRes: { task_id: string; status: string };
       switch (tab) {
         case 'github':
           if (!githubUrl.trim()) throw new Error('Please enter a GitHub URL');
-          result = await analyzeGitHub(githubUrl.trim(), branch || 'main');
+          taskRes = await analyzeGitHub(githubUrl.trim(), branch || 'main');
           break;
         case 'upload':
           if (!fileRef.current?.files?.[0]) throw new Error('Please select a zip file');
-          result = await analyzeUpload(fileRef.current.files[0]);
+          taskRes = await analyzeUpload(fileRef.current.files[0]);
           break;
         case 'local':
           if (!localPath.trim()) throw new Error('Please enter a directory path');
-          result = await analyzeLocal(localPath.trim());
+          taskRes = await analyzeLocal(localPath.trim());
           break;
         default:
           throw new Error('Invalid tab');
       }
-      onResult(result);
-      navigate('/dashboard');
+      
+      pollStatus(taskRes.task_id);
     } catch (err: unknown) {
       const errorObj = err as { response?: { data?: { detail?: string } }, message?: string };
-      const msg = errorObj?.response?.data?.detail || errorObj?.message || 'Analysis failed';
+      const msg = errorObj?.response?.data?.detail || errorObj?.message || 'Analysis failed to start';
       setError(String(msg));
-    } finally {
+      setLoading(false);
+    }
+  };
+
+  const pollStatus = async (taskId: string) => {
+    try {
+      const statusRes = await checkAnalysisStatus(taskId);
+      if (statusRes.status === 'completed' && statusRes.result) {
+        onResult(statusRes.result);
+        navigate('/dashboard');
+        setLoading(false);
+      } else if (statusRes.status === 'failed') {
+        throw new Error(statusRes.error || 'Analysis failed on server');
+      } else {
+        setTimeout(() => pollStatus(taskId), 2000);
+      }
+    } catch (err: unknown) {
+      const errorObj = err as { response?: { data?: { detail?: string } }, message?: string };
+      const msg = errorObj?.response?.data?.detail || errorObj?.message || 'Error checking status';
+      setError(String(msg));
       setLoading(false);
     }
   };

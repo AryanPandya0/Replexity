@@ -6,12 +6,24 @@ const api = axios.create({
   timeout: 120000, // 2 minutes for large repos
 });
 
-export async function analyzeGitHub(url: string, branch: string = 'main'): Promise<AnalysisResult> {
+interface TaskResponse {
+  task_id: string;
+  status: string;
+}
+
+interface PollResponse {
+  task_id: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  result?: AnalysisResult;
+  error?: string;
+}
+
+export async function analyzeGitHub(url: string, branch: string = 'main'): Promise<TaskResponse> {
   const res = await api.post('/analyze/github', { url, branch });
   return res.data;
 }
 
-export async function analyzeUpload(file: File): Promise<AnalysisResult> {
+export async function analyzeUpload(file: File): Promise<TaskResponse> {
   const form = new FormData();
   form.append('file', file);
   const res = await api.post('/analyze/upload', form, {
@@ -20,8 +32,13 @@ export async function analyzeUpload(file: File): Promise<AnalysisResult> {
   return res.data;
 }
 
-export async function analyzeLocal(path: string): Promise<AnalysisResult> {
+export async function analyzeLocal(path: string): Promise<TaskResponse> {
   const res = await api.post('/analyze/local', { path });
+  return res.data;
+}
+
+export async function checkAnalysisStatus(taskId: string): Promise<PollResponse> {
+  const res = await api.get(`/status/${taskId}`);
   return res.data;
 }
 
