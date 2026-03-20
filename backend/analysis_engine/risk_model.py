@@ -5,6 +5,15 @@ Risk Model – AI scoring model that calculates a Risk Score (0-100) for each fi
 Uses weighted formula combining multiple normalized metrics.
 """
 
+RISK_WEIGHTS = {
+    "complexity": 0.20,
+    "cognitive": 0.20,
+    "loc": 0.20,
+    "nesting": 0.15,
+    "function_length": 0.15,
+    "branch_density": 0.10,
+}
+
 
 def _normalize(value: float, low: float, high: float) -> float:
     """Normalize value to 0-100 range."""
@@ -58,12 +67,12 @@ def calculate_risk_score(
     branch_score = _normalize(branch_density, 0, 10)
 
     risk_score = (
-        0.20 * complexity_score
-        + 0.20 * cognitive_score
-        + 0.20 * loc_score
-        + 0.15 * nesting_score
-        + 0.15 * func_length_score
-        + 0.10 * branch_score
+        RISK_WEIGHTS["complexity"] * complexity_score
+        + RISK_WEIGHTS["cognitive"] * cognitive_score
+        + RISK_WEIGHTS["loc"] * loc_score
+        + RISK_WEIGHTS["nesting"] * nesting_score
+        + RISK_WEIGHTS["function_length"] * func_length_score
+        + RISK_WEIGHTS["branch_density"] * branch_score
     )
 
     risk_score = float(f"{max(0.0, min(100.0, risk_score)):.2f}")

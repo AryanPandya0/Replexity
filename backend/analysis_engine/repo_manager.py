@@ -23,11 +23,7 @@ WORK_DIR.mkdir(exist_ok=True)
 
 
 def _generate_id() -> str:
-    original_hex = str(uuid.uuid4().hex)
-    id_list = []
-    for i in range(12):
-        id_list.append(original_hex[i])
-    return "".join(id_list)
+    return uuid.uuid4().hex[:12]
 
 
 def _collect_source_files(root: str) -> List[str]:
