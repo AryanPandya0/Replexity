@@ -1,11 +1,8 @@
-import { Activity } from 'lucide-react';
-
 interface Props {
   score: number;
 }
 
 export function HealthCircle({ score }: Props) {
-  // Score-based colors
   const getColor = (s: number) => {
     if (s >= 80) return '#10b981';
     if (s >= 60) return '#f59e0b';
@@ -13,45 +10,28 @@ export function HealthCircle({ score }: Props) {
   };
 
   const color = getColor(score);
-  const radius = 70;
+  const radius = 58;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (score / 100) * circumference;
 
   return (
-    <div className="relative flex items-center justify-center w-[200px] h-[200px]">
-      <svg className="w-full h-full transform -rotate-90">
-        {/* Background Circle */}
+    <div style={{ position: 'relative', width: 150, height: 150, flexShrink: 0 }}>
+      <svg width="150" height="150" style={{ transform: 'rotate(-90deg)' }}>
+        <circle cx="75" cy="75" r={radius} stroke="var(--border)" strokeWidth="10" fill="transparent" opacity={0.2} />
         <circle
-          cx="100"
-          cy="100"
-          r={radius}
-          stroke="var(--border)"
-          strokeWidth="12"
-          fill="transparent"
-          className="opacity-20"
-        />
-        {/* Progress Circle */}
-        <circle
-          cx="100"
-          cy="100"
-          r={radius}
-          stroke={color}
-          strokeWidth="12"
-          fill="transparent"
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
+          cx="75" cy="75" r={radius}
+          stroke={color} strokeWidth="10" fill="transparent"
+          strokeDasharray={circumference} strokeDashoffset={offset}
           strokeLinecap="round"
-          className="transition-all duration-1000 ease-out"
-          style={{ filter: `drop-shadow(0 0 8px ${color}44)` }}
+          style={{ transition: 'stroke-dashoffset 1s ease-out', filter: `drop-shadow(0 0 6px ${color}44)` }}
         />
       </svg>
-      
-      <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-        <Activity size={24} className="mb-1 opacity-50" style={{ color }} />
-        <span className="text-4xl font-black tracking-tighter" style={{ color }}>
-          {Math.round(score)}
-        </span>
-        <span className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest mt-1">Health Index</span>
+      <div style={{
+        position: 'absolute', inset: 0,
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <span style={{ fontSize: '2rem', fontWeight: 900, color, lineHeight: 1 }}>{Math.round(score)}</span>
+        <span style={{ fontSize: '0.55rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: 4 }}>Health</span>
       </div>
     </div>
   );
