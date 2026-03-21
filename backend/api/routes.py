@@ -20,6 +20,7 @@ from backend.analysis_engine.repo_manager import (  # type: ignore
 )
 from backend.analysis_engine.risk_model import calculate_risk_score  # type: ignore
 from backend.analysis_engine.smell_detector import detect_smells  # type: ignore
+from backend.analysis_engine.linter_service import run_all_linters  # type: ignore
 from backend.api.schemas import (  # type: ignore
     AnalysisResult,
     CodeSmellResult,
@@ -92,8 +93,17 @@ def _run_analysis(analysis_id: str, repo_root: str, source_files: List[str]) -> 
     total_maintainability = 0.0
     languages: Dict[str, int] = {}
 
+    # Execute external linters (Ruff, ESLint)
+    print(f"Analysis Pipeline: Running external linters for {repo_root}...")
+    external_smells = run_all_linters(repo_root)
+    print(f"Analysis Pipeline: Found {len(external_smells)} external smells.")
+    file_to_external_smells: Dict[str, List[CodeSmellResult]] = {}
+    for sm in external_smells:
+        file_to_external_smells.setdefault(sm.file, []).append(sm)
+
     for file_path in source_files:
         try:
+            print(f"Analysis Pipeline: Processing {file_path}...")
             # 1. Parse the file
             parse_result = parse_file(file_path)
 
@@ -132,6 +142,10 @@ def _run_analysis(analysis_id: str, repo_root: str, source_files: List[str]) -> 
                 )
                 for s in smells
             ]
+
+            # 5b. Add external linter results
+            if rel_path in file_to_external_smells:
+                smell_results.extend(file_to_external_smells[rel_path])
 
             # 6. Generate refactoring suggestions
             suggestions = generate_suggestions(
@@ -221,22 +235,37 @@ def _run_analysis(analysis_id: str, repo_root: str, source_files: List[str]) -> 
 
     # Calculate Coupling (Ca, Ce, Instability)
     # Using a more robust mapping: check if imported paths exist in our project
+    print(f"Analysis Pipeline: Calculating coupling for {len(all_file_metrics)} files...", flush=True)
     project_files = {f.file_path for f in all_file_metrics}
     
+    # Pre-map base names to paths for faster lookup
+    base_to_path: Dict[str, str] = {}
+    for pf in project_files:
+        base = os.path.basename(pf).split('.')[0]
+        base_to_path[base] = pf
+
     for f in all_file_metrics:
         imported_names = import_map.get(f.file_path, set())
         for imp in imported_names:
-            # Check if any project file matches this import name
-            for pf in project_files:
-                if pf == f.file_path: continue
-                pf_base = os.path.basename(pf).split('.')[0]
-                if imp == pf or imp == pf_base:
+            # 1. Exact path match
+            if imp in project_files and imp != f.file_path:
+                f.coupling_efferent += 1
+                for target in all_file_metrics:
+                    if target.file_path == imp:
+                        target.coupling_afferent += 1
+                        break
+                continue
+            
+            # 2. Base name match (e.g. 'utils' -> 'backend/utils.py')
+            if imp in base_to_path:
+                target_path = base_to_path[imp]
+                if target_path != f.file_path:
                     f.coupling_efferent += 1
-                    # Find the target file metrics to increment Ca
                     for target in all_file_metrics:
-                        if target.file_path == pf:
+                        if target.file_path == target_path:
                             target.coupling_afferent += 1
                             break
+    print(f"Analysis Pipeline: Coupling calculation complete.", flush=True)
     
     for f in all_file_metrics:
         total_coupling = float(f.coupling_afferent + f.coupling_efferent)
@@ -294,13 +323,23 @@ async def analyze_github(req: GitHubAnalysisRequest, background_tasks: Backgroun
     def _background_job():
         from backend.analysis_engine.repo_manager import cleanup  # type: ignore
         try:
+            print(f"Task {task.task_id}: Cloning repository {req.url}...", flush=True)
+            analysis_id: str
+            repo_root: str
+            files: List[str]
             analysis_id, repo_root, files = clone_github_repo(req.url, req.branch)
             if not files:
                 raise Exception("No supported source files found.")
-            res = _run_analysis(analysis_id, repo_root, files)
+            
+            print(f"Task {task.task_id}: Analyzing {len(files)} files...", flush=True)
+            res: AnalysisResult = _run_analysis(analysis_id, repo_root, files)
             task.result = res
             task.status = TaskStatus.COMPLETED
+            print(f"Task {task.task_id}: Completed successfully.", flush=True)
         except Exception as e:
+            print(f"Task {task.task_id}: Failed: {e}", flush=True)
+            import traceback
+            traceback.print_exc()
             task.status = TaskStatus.FAILED
             task.error = str(e)
         finally:
@@ -328,13 +367,21 @@ async def analyze_upload(background_tasks: BackgroundTasks, file: UploadFile = F
     def _background_job():
         from backend.analysis_engine.repo_manager import cleanup  # type: ignore
         try:
+            print(f"Task {task.task_id}: Extracting zip file...")
+            analysis_id: str
+            repo_root: str
+            files: List[str]
             analysis_id, repo_root, files = extract_zip(tmp.name)
             if not files:
                 raise Exception("No supported source files found in archive.")
-            res = _run_analysis(analysis_id, repo_root, files)
+            
+            print(f"Task {task.task_id}: Analyzing {len(files)} files...")
+            res: AnalysisResult = _run_analysis(analysis_id, repo_root, files)
             task.result = res
             task.status = TaskStatus.COMPLETED
+            print(f"Task {task.task_id}: Completed successfully.")
         except Exception as e:
+            print(f"Task {task.task_id}: Failed: {e}")
             task.status = TaskStatus.FAILED
             task.error = str(e)
         finally:
@@ -354,13 +401,21 @@ async def analyze_local(req: LocalAnalysisRequest, background_tasks: BackgroundT
 
     def _background_job():
         try:
+            print(f"Task {task.task_id}: Using local directory {req.path}...")
+            analysis_id: str
+            repo_root: str
+            files: List[str]
             analysis_id, repo_root, files = use_local_directory(req.path)
             if not files:
                 raise Exception("No supported source files found.")
-            res = _run_analysis(analysis_id, repo_root, files)
+            
+            print(f"Task {task.task_id}: Analyzing {len(files)} files...")
+            res: AnalysisResult = _run_analysis(analysis_id, repo_root, files)
             task.result = res
             task.status = TaskStatus.COMPLETED
+            print(f"Task {task.task_id}: Completed successfully.")
         except Exception as e:
+            print(f"Task {task.task_id}: Failed: {e}")
             task.status = TaskStatus.FAILED
             task.error = str(e)
 

@@ -6,3 +6,5 @@ pydantic==2.9.0
 python-multipart==0.0.9
 fpdf2==2.8.1
 aiofiles==24.1.0
+tree-sitter>=0.25.0
+tree-sitter-language-pack>=0.25.0
