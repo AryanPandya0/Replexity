@@ -1,10 +1,19 @@
 import { useState, useRef } from 'react';
-import { 
-  Github, 
-  FileArchive, 
-  FolderPlus, 
-  Loader2, 
-  AlertCircle
+import {
+  Github,
+  FileArchive,
+  FolderOpen,
+  Loader2,
+  AlertCircle,
+  GitBranch,
+  GitCommit,
+  Star,
+  Upload,
+  File,
+  Package,
+  FolderTree,
+  HardDrive,
+  Monitor,
 } from 'lucide-react';
 import { analyzeLocal, analyzeGitHub, analyzeUpload, checkAnalysisStatus } from '../api';
 import type { AnalysisResult } from '../types';
@@ -20,16 +29,15 @@ export default function AnalysisInputPage({ onAnalysisComplete }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string>('');
-  
-  // Inputs
+
   const [repoUrl, setRepoUrl] = useState('');
   const [localPath, setLocalPath] = useState('');
+  const [fileName, setFileName] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const startPolling = (taskId: string) => {
     setLoading(true);
     setStatus('Analysis initiated...');
-    
     const interval = setInterval(async () => {
       try {
         const res = await checkAnalysisStatus(taskId);
@@ -43,7 +51,7 @@ export default function AnalysisInputPage({ onAnalysisComplete }: Props) {
         } else {
           setStatus(res.status === 'processing' ? 'Crunching code metrics...' : 'Queueing task...');
         }
-      } catch (err) {
+      } catch {
         clearInterval(interval);
         setError('Lost connection to the analysis server.');
         setLoading(false);
@@ -53,8 +61,7 @@ export default function AnalysisInputPage({ onAnalysisComplete }: Props) {
 
   const handleGitHub = async () => {
     if (!repoUrl) return;
-    setLoading(true);
-    setError(null);
+    setLoading(true); setError(null);
     try {
       const { task_id } = await analyzeGitHub(repoUrl);
       startPolling(task_id);
@@ -66,8 +73,7 @@ export default function AnalysisInputPage({ onAnalysisComplete }: Props) {
 
   const handleLocal = async () => {
     if (!localPath) return;
-    setLoading(true);
-    setError(null);
+    setLoading(true); setError(null);
     try {
       const { task_id } = await analyzeLocal(localPath);
       startPolling(task_id);
@@ -80,8 +86,8 @@ export default function AnalysisInputPage({ onAnalysisComplete }: Props) {
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setLoading(true);
-    setError(null);
+    setFileName(file.name);
+    setLoading(true); setError(null);
     try {
       const { task_id } = await analyzeUpload(file);
       startPolling(task_id);
@@ -91,128 +97,411 @@ export default function AnalysisInputPage({ onAnalysisComplete }: Props) {
     }
   };
 
+  // Tab config
+  const tabs: { key: TabType; label: string; icon: any }[] = [
+    { key: 'github', label: 'GitHub', icon: <Github size={16} /> },
+    { key: 'zip', label: 'Zip Archive', icon: <FileArchive size={16} /> },
+    { key: 'local', label: 'Local Path', icon: <FolderOpen size={16} /> },
+  ];
+
+  // Floating decoration elements per tab — positioned as % of viewport
+  // Format: { icon, label, left%, top%, rotation, opacity, size }
+  const floatingElements: Record<TabType, { icon: any; label: string; left: string; top: string; rot: number; op: number }[]> = {
+    github: [
+      // Left column
+      { icon: <GitBranch size={14} />, label: 'branch',   left: '3%',  top: '12%', rot: -10, op: 0.5 },
+      { icon: <Star size={12} />,      label: 'starred',  left: '6%',  top: '35%', rot: 6,   op: 0.4 },
+      { icon: <GitCommit size={14} />, label: 'commit',   left: '2%',  top: '58%', rot: -8,  op: 0.45 },
+      { icon: <Github size={12} />,    label: 'clone',    left: '8%',  top: '78%', rot: 12,  op: 0.35 },
+      { icon: <GitBranch size={10} />, label: 'pr',       left: '12%', top: '92%', rot: -5,  op: 0.3 },
+      // Right column
+      { icon: <Github size={16} />,    label: 'repo',     left: '88%', top: '10%', rot: 8,   op: 0.5 },
+      { icon: <GitBranch size={12} />, label: 'merge',    left: '92%', top: '32%', rot: -14, op: 0.45 },
+      { icon: <Star size={14} />,      label: 'fork',     left: '86%', top: '55%', rot: 5,   op: 0.4 },
+      { icon: <GitCommit size={12} />, label: 'tag',      left: '90%', top: '75%', rot: -10, op: 0.35 },
+      { icon: <Github size={10} />,    label: 'origin',   left: '85%', top: '90%', rot: 7,   op: 0.3 },
+      // Scattered middle
+      { icon: <Star size={10} />,      label: 'star',     left: '20%', top: '18%', rot: 15,  op: 0.25 },
+      { icon: <GitCommit size={10} />, label: 'sha',      left: '75%', top: '22%', rot: -8,  op: 0.25 },
+    ],
+    zip: [
+      { icon: <Upload size={14} />,      label: 'upload',  left: '3%',  top: '12%', rot: -8,  op: 0.5 },
+      { icon: <File size={12} />,         label: '.ts',     left: '7%',  top: '35%', rot: 10,  op: 0.4 },
+      { icon: <Package size={14} />,      label: 'pkg',     left: '2%',  top: '58%', rot: -6,  op: 0.45 },
+      { icon: <File size={12} />,         label: '.jsx',    left: '9%',  top: '78%', rot: 12,  op: 0.35 },
+      { icon: <Upload size={10} />,       label: 'stream',  left: '12%', top: '92%', rot: -4,  op: 0.3 },
+      { icon: <FileArchive size={16} />,  label: 'archive', left: '88%', top: '10%', rot: 6,   op: 0.5 },
+      { icon: <File size={12} />,         label: '.py',     left: '92%', top: '32%', rot: -12, op: 0.45 },
+      { icon: <Package size={14} />,      label: 'bundle',  left: '86%', top: '55%', rot: 8,   op: 0.4 },
+      { icon: <File size={12} />,         label: '.rs',     left: '90%', top: '75%', rot: -7,  op: 0.35 },
+      { icon: <FileArchive size={10} />,  label: 'tar.gz',  left: '85%', top: '90%', rot: 5,   op: 0.3 },
+      { icon: <Package size={10} />,      label: 'npm',     left: '18%', top: '20%', rot: -12, op: 0.25 },
+      { icon: <File size={10} />,         label: '.go',     left: '78%', top: '20%', rot: 9,   op: 0.25 },
+    ],
+    local: [
+      { icon: <FolderTree size={14} />,  label: 'tree',     left: '3%',  top: '12%', rot: -6,  op: 0.5 },
+      { icon: <HardDrive size={12} />,   label: 'disk',     left: '7%',  top: '35%', rot: 8,   op: 0.4 },
+      { icon: <File size={14} />,        label: 'src',      left: '2%',  top: '58%', rot: -10, op: 0.45 },
+      { icon: <FolderOpen size={12} />,  label: 'modules',  left: '9%',  top: '78%', rot: 6,   op: 0.35 },
+      { icon: <HardDrive size={10} />,   label: 'ssd',      left: '12%', top: '92%', rot: -4,  op: 0.3 },
+      { icon: <Monitor size={16} />,     label: 'local',    left: '88%', top: '10%', rot: 10,  op: 0.5 },
+      { icon: <FolderOpen size={12} />,  label: 'dir',      left: '92%', top: '32%', rot: -8,  op: 0.45 },
+      { icon: <FolderTree size={14} />,  label: 'node',     left: '86%', top: '55%', rot: 5,   op: 0.4 },
+      { icon: <File size={12} />,        label: 'config',   left: '90%', top: '75%', rot: -12, op: 0.35 },
+      { icon: <Monitor size={10} />,     label: 'dev',      left: '85%', top: '90%', rot: 7,   op: 0.3 },
+      { icon: <FolderTree size={10} />,  label: 'root',     left: '20%', top: '16%', rot: 12,  op: 0.25 },
+      { icon: <HardDrive size={10} />,   label: 'vol',      left: '76%', top: '22%', rot: -6,  op: 0.25 },
+    ],
+  };
+
   return (
-    <div className="page-content flex flex-col items-center justify-center min-h-[70vh]">
-      <div className="w-full max-w-xl">
-        <div className="text-center mb-10">
-          <h1 className="text-4xl font-black mb-3 text-[var(--text-primary)]">Code Intelligence</h1>
-          <p className="text-[var(--text-secondary)]">Choose your ingestion method to begin the visual audit.</p>
-        </div>
+    <div style={{
+      position: 'relative',
+      minHeight: 'calc(100vh - 72px)',
+      overflow: 'hidden',
+    }}>
+      {/* Full-viewport floating element layer */}
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        pointerEvents: 'none',
+        zIndex: 0,
+      }}>
+        {floatingElements[tab].map((el, i) => (
+          <div
+            key={`${tab}-${i}`}
+            style={{
+              position: 'absolute',
+              left: el.left,
+              top: el.top,
+              transform: `rotate(${el.rot}deg)`,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 7,
+              background: 'var(--bg-secondary)',
+              border: '1px solid var(--border)',
+              borderRadius: 10,
+              padding: '7px 13px',
+              boxShadow: '0 6px 20px rgba(0,0,0,0.2)',
+              color: 'var(--accent)',
+              fontSize: '0.6rem',
+              fontWeight: 700,
+              textTransform: 'uppercase' as const,
+              letterSpacing: '0.08em',
+              opacity: el.op,
+              transition: 'opacity 0.6s ease, transform 0.6s ease',
+            }}
+          >
+            {el.icon}
+            <span style={{ color: 'var(--text-muted)' }}>{el.label}</span>
+          </div>
+        ))}
+      </div>
 
-        {/* ── Tabs ── */}
-        <div className="flex bg-[var(--bg-secondary)] p-1 rounded-xl border-2 border-[var(--border)] mb-8">
-          <button 
-            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg font-bold transition-all ${tab === 'github' ? 'bg-[var(--accent)] text-[var(--bg-primary)] shadow-lg' : 'text-[var(--text-muted)] hover:text-white'}`}
-            onClick={() => setTab('github')}
-            disabled={loading}
-          >
-            <Github size={18} /> GitHub
-          </button>
-          <button 
-            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg font-bold transition-all ${tab === 'zip' ? 'bg-[var(--accent)] text-[var(--bg-primary)] shadow-lg' : 'text-[var(--text-muted)] hover:text-white'}`}
-            onClick={() => setTab('zip')}
-            disabled={loading}
-          >
-            <FileArchive size={18} /> Zip
-          </button>
-          <button 
-            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg font-bold transition-all ${tab === 'local' ? 'bg-[var(--accent)] text-[var(--bg-primary)] shadow-lg' : 'text-[var(--text-muted)] hover:text-white'}`}
-            onClick={() => setTab('local')}
-            disabled={loading}
-          >
-            <FolderPlus size={18} /> Local
-          </button>
-        </div>
+      {/* Central content */}
+      <div style={{
+        position: 'relative',
+        zIndex: 10,
+        maxWidth: 520,
+        margin: '0 auto',
+        padding: '0 24px',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: 'calc(100vh - 72px)',
+      }}>
+        <div style={{ width: '100%' }}>
+          {/* Header */}
+          <div style={{ textAlign: 'center', marginBottom: 36 }}>
+            <h1 style={{
+              fontSize: '2.5rem',
+              fontWeight: 900,
+              letterSpacing: '-0.03em',
+              color: 'var(--text-primary)',
+              marginBottom: 8,
+            }}>
+              Code Intelligence
+            </h1>
+            <p style={{
+              fontSize: '0.95rem',
+              color: 'var(--text-secondary)',
+            }}>
+              Choose your ingestion method to begin the audit.
+            </p>
+          </div>
 
-        {/* ── Input Panels ── */}
-        <div className="card min-h-[220px] flex flex-col justify-center">
-          {tab === 'github' && (
-            <div className="animate-in fade-in duration-300">
-              <div className="input-group">
-                <label className="input-label">Public Repository URL</label>
-                <input 
-                  type="text" 
-                  className="input" 
+          {/* Tabs */}
+          <div style={{
+            display: 'flex',
+            background: 'var(--bg-secondary)',
+            padding: 4,
+            borderRadius: 14,
+            border: '2px solid var(--border)',
+            marginBottom: 24,
+          }}>
+            {tabs.map((t) => (
+              <button
+                key={t.key}
+                onClick={() => setTab(t.key)}
+                disabled={loading}
+                style={{
+                  flex: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  padding: '12px 0',
+                  borderRadius: 10,
+                  fontWeight: 700,
+                  fontSize: '0.85rem',
+                  border: 'none',
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s ease',
+                  fontFamily: 'var(--font-sans)',
+                  background: tab === t.key ? 'var(--accent)' : 'transparent',
+                  color: tab === t.key ? 'var(--bg-primary)' : 'var(--text-muted)',
+                  boxShadow: tab === t.key ? '0 4px 12px rgba(0,0,0,0.2)' : 'none',
+                }}
+              >
+                {t.icon} {t.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Uniform Input Panel — same height for all tabs */}
+          <div style={{
+            background: 'var(--bg-secondary)',
+            border: '2px solid var(--border)',
+            borderRadius: 16,
+            padding: 32,
+            minHeight: 180,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+          }}>
+
+            {/* GitHub Tab */}
+            {tab === 'github' && (
+              <div>
+                <label style={{
+                  display: 'block',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                  color: 'var(--text-muted)',
+                  marginBottom: 10,
+                }}>Public Repository URL</label>
+                <input
+                  type="text"
                   placeholder="https://github.com/facebook/react"
                   value={repoUrl}
                   onChange={(e) => setRepoUrl(e.target.value)}
                   disabled={loading}
+                  style={{
+                    width: '100%',
+                    background: 'var(--bg-primary)',
+                    border: '2px solid var(--border)',
+                    borderRadius: 10,
+                    padding: '14px 18px',
+                    color: 'var(--text-primary)',
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: '0.9rem',
+                    outline: 'none',
+                    marginBottom: 16,
+                    boxSizing: 'border-box',
+                  }}
                 />
-              </div>
-              <button 
-                className="btn btn-primary w-full mt-2" 
-                onClick={handleGitHub}
-                disabled={loading || !repoUrl}
-              >
-                {loading ? <Loader2 className="animate-spin" /> : 'Connect & Analyze'}
-              </button>
-            </div>
-          )}
-
-          {tab === 'zip' && (
-            <div className="text-center animate-in fade-in duration-300">
-              <div className="mb-6 p-8 border-2 border-dashed border-[var(--border)] rounded-xl bg-[var(--bg-primary)]">
-                <FileArchive size={40} className="mx-auto mb-4 text-[var(--text-muted)]" />
-                <p className="text-sm text-[var(--text-secondary)] mb-4">Upload a ZIP containing your source code</p>
-                <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  onChange={handleUpload} 
-                  hidden 
-                  accept=".zip"
-                />
-                <button 
-                  className="btn btn-secondary" 
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={loading}
+                <button
+                  onClick={handleGitHub}
+                  disabled={loading || !repoUrl}
+                  style={{
+                    width: '100%',
+                    padding: '14px 0',
+                    background: (loading || !repoUrl) ? 'var(--border)' : 'var(--accent)',
+                    color: 'var(--bg-primary)',
+                    border: 'none',
+                    borderRadius: 10,
+                    fontWeight: 800,
+                    fontSize: '0.95rem',
+                    cursor: (loading || !repoUrl) ? 'not-allowed' : 'pointer',
+                    fontFamily: 'var(--font-sans)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                  }}
                 >
-                  Choose Archive
+                  {loading ? <Loader2 size={18} className="animate-spin" /> : 'Connect & Analyze'}
                 </button>
               </div>
-            </div>
-          )}
+            )}
 
-          {tab === 'local' && (
-            <div className="animate-in fade-in duration-300">
-              <div className="input-group">
-                <label className="input-label">Absolute Filesystem Path</label>
-                <input 
-                  type="text" 
-                  className="input" 
-                  placeholder="C:\Projects\Replexity"
+            {/* Zip Tab — unified layout: label + file picker + button */}
+            {tab === 'zip' && (
+              <div>
+                <label style={{
+                  display: 'block',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                  color: 'var(--text-muted)',
+                  marginBottom: 10,
+                }}>Source Code Archive (.zip)</label>
+                <input type="file" ref={fileInputRef} onChange={handleUpload} hidden accept=".zip" />
+                <div
+                  onClick={() => !loading && fileInputRef.current?.click()}
+                  style={{
+                    width: '100%',
+                    background: 'var(--bg-primary)',
+                    border: '2px solid var(--border)',
+                    borderRadius: 10,
+                    padding: '14px 18px',
+                    color: fileName ? 'var(--text-primary)' : 'var(--text-muted)',
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: '0.9rem',
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                    marginBottom: 16,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    boxSizing: 'border-box',
+                  }}
+                >
+                  <FileArchive size={16} style={{ opacity: 0.5 }} />
+                  {fileName || 'Click to select a .zip archive...'}
+                </div>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={loading}
+                  style={{
+                    width: '100%',
+                    padding: '14px 0',
+                    background: loading ? 'var(--border)' : 'var(--accent)',
+                    color: 'var(--bg-primary)',
+                    border: 'none',
+                    borderRadius: 10,
+                    fontWeight: 800,
+                    fontSize: '0.95rem',
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                    fontFamily: 'var(--font-sans)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                  }}
+                >
+                  {loading ? <Loader2 size={18} className="animate-spin" /> : 'Upload & Analyze'}
+                </button>
+              </div>
+            )}
+
+            {/* Local Tab */}
+            {tab === 'local' && (
+              <div>
+                <label style={{
+                  display: 'block',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                  color: 'var(--text-muted)',
+                  marginBottom: 10,
+                }}>Absolute Filesystem Path</label>
+                <input
+                  type="text"
+                  placeholder="D:\Projects\my-app"
                   value={localPath}
                   onChange={(e) => setLocalPath(e.target.value)}
                   disabled={loading}
+                  style={{
+                    width: '100%',
+                    background: 'var(--bg-primary)',
+                    border: '2px solid var(--border)',
+                    borderRadius: 10,
+                    padding: '14px 18px',
+                    color: 'var(--text-primary)',
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: '0.9rem',
+                    outline: 'none',
+                    marginBottom: 16,
+                    boxSizing: 'border-box',
+                  }}
                 />
+                <button
+                  onClick={handleLocal}
+                  disabled={loading || !localPath}
+                  style={{
+                    width: '100%',
+                    padding: '14px 0',
+                    background: (loading || !localPath) ? 'var(--border)' : 'var(--accent)',
+                    color: 'var(--bg-primary)',
+                    border: 'none',
+                    borderRadius: 10,
+                    fontWeight: 800,
+                    fontSize: '0.95rem',
+                    cursor: (loading || !localPath) ? 'not-allowed' : 'pointer',
+                    fontFamily: 'var(--font-sans)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                  }}
+                >
+                  {loading ? <Loader2 size={18} className="animate-spin" /> : 'Scan Directory'}
+                </button>
               </div>
-              <button 
-                className="btn btn-primary w-full mt-2" 
-                onClick={handleLocal}
-                disabled={loading || !localPath}
-              >
-                {loading ? <Loader2 className="animate-spin" /> : 'Process Local Path'}
-              </button>
+            )}
+          </div>
+
+          {/* Loading bar */}
+          {loading && (
+            <div style={{ marginTop: 28, textAlign: 'center' }}>
+              <div style={{
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                color: 'var(--accent)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.1em',
+                marginBottom: 12,
+              }}>{status}</div>
+              <div style={{
+                width: '100%',
+                height: 5,
+                background: 'var(--bg-secondary)',
+                borderRadius: 6,
+                overflow: 'hidden',
+                border: '1px solid var(--border)',
+              }}>
+                <div className="animate-progress-bar" style={{
+                  height: '100%',
+                  width: '100%',
+                  background: 'var(--accent)',
+                }}></div>
+              </div>
+            </div>
+          )}
+
+          {/* Error */}
+          {error && (
+            <div style={{
+              marginTop: 24,
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 12,
+              padding: 16,
+              background: 'rgba(239,68,68,0.08)',
+              border: '2px solid rgba(239,68,68,0.2)',
+              borderRadius: 12,
+              color: '#f87171',
+            }}>
+              <AlertCircle size={18} style={{ flexShrink: 0, marginTop: 2 }} />
+              <div style={{ fontSize: '0.85rem', fontWeight: 700 }}>{error}</div>
             </div>
           )}
         </div>
-
-        {/* ── Loading & Status ── */}
-        {loading && (
-          <div className="mt-8 flex flex-col items-center gap-4">
-            <span className="text-[var(--accent)] font-bold text-sm uppercase tracking-widest">{status}</span>
-            <div className="w-full h-1.5 bg-[var(--bg-secondary)] rounded-full overflow-hidden border-2 border-[var(--border)]">
-              <div className="h-full bg-[var(--accent)] animate-progress-bar"></div>
-            </div>
-          </div>
-        )}
-
-        {/* ── Error Display ── */}
-        {error && (
-          <div className="mt-8 flex items-start gap-3 p-4 bg-red-500/10 border-2 border-red-500/20 rounded-xl text-red-400">
-            <AlertCircle size={20} className="shrink-0 mt-0.5" />
-            <div className="text-sm font-bold">{error}</div>
-          </div>
-        )}
       </div>
     </div>
   );
