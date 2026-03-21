@@ -20,14 +20,14 @@ ChartJS.register(
   PointElement, LineElement, Title, Tooltip, Legend, Filler
 );
 
-interface Props {
-  result: AnalysisResult | null;
-}
-
 import { HealthCircle } from '../components/dashboard/HealthCircle';
 import { StatCards } from '../components/dashboard/StatCards';
 import { RiskHeatmap } from '../components/dashboard/RiskHeatmap';
 import { FileRankingTable } from '../components/dashboard/FileRankingTable';
+
+interface Props {
+  result: AnalysisResult | null;
+}
 
 export default function DashboardPage({ result }: Props) {
   if (!result) {
@@ -41,10 +41,25 @@ export default function DashboardPage({ result }: Props) {
     );
   }
 
-  const { overview, files, risk_distribution } = result;
+  const files = result.files || [];
+  const overview = result.overview || { health_score: 0, languages: {}, avg_maintainability: 0 };
+  const risk_distribution = result.risk_distribution || { low: 0, medium: 0, high: 0, critical: 0 };
 
   // Top 15 files for chart
   const topFiles = files.slice(0, 15);
+
+  if (files.length === 0) {
+    return (
+      <div className="page-content">
+        <div className="empty-state">
+          <div className="empty-state-icon">📂</div>
+          <h2 className="empty-state-title">No Files Found</h2>
+          <p className="empty-state-desc">The analysis completed but no source files were detected.</p>
+          <Link to="/analyze" className="btn btn-primary">Try Another Path</Link>
+        </div>
+      </div>
+    );
+  }
 
   /* ── Complexity Bar Charts ────────────────────────────── */
   const complexityData = {
@@ -56,17 +71,17 @@ export default function DashboardPage({ result }: Props) {
       {
         label: 'Cyclomatic',
         data: topFiles.map((f) => f.cyclomatic_complexity),
-        backgroundColor: 'rgba(99,102,241,0.7)',
-        borderColor: '#6366f1',
-        borderWidth: 1,
+        backgroundColor: '#D2C1B6',
+        borderColor: '#D2C1B6',
+        borderWidth: 0,
         borderRadius: 4,
       },
       {
         label: 'Cognitive',
         data: topFiles.map((f) => f.cognitive_complexity),
-        backgroundColor: 'rgba(236,72,153,0.7)',
-        borderColor: '#ec4899',
-        borderWidth: 1,
+        backgroundColor: '#456882',
+        borderColor: '#456882',
+        borderWidth: 0,
         borderRadius: 4,
       },
     ],
@@ -83,14 +98,9 @@ export default function DashboardPage({ result }: Props) {
           risk_distribution.high || 0,
           risk_distribution.critical || 0,
         ],
-        backgroundColor: [
-          'rgba(16,185,129,0.8)',
-          'rgba(245,158,11,0.8)',
-          'rgba(249,115,22,0.8)',
-          'rgba(239,68,68,0.8)',
-        ],
-        borderColor: ['#10b981', '#f59e0b', '#f97316', '#ef4444'],
-        borderWidth: 2,
+        backgroundColor: ['#10b981', '#f59e0b', '#f97316', '#ef4444'],
+        borderColor: '#1B3C53',
+        borderWidth: 4,
         hoverOffset: 8,
       },
     ],
@@ -106,17 +116,17 @@ export default function DashboardPage({ result }: Props) {
       {
         label: 'Afferent (Ca)',
         data: topFiles.map((f) => f.coupling_afferent),
-        backgroundColor: 'rgba(16,185,129,0.7)',
-        borderColor: '#10b981',
-        borderWidth: 1,
+        backgroundColor: '#456882',
+        borderColor: '#456882',
+        borderWidth: 0,
         borderRadius: 4,
       },
       {
         label: 'Efferent (Ce)',
         data: topFiles.map((f) => f.coupling_efferent),
-        backgroundColor: 'rgba(249,115,22,0.7)',
-        borderColor: '#f97316',
-        borderWidth: 1,
+        backgroundColor: '#D2C1B6',
+        borderColor: '#D2C1B6',
+        borderWidth: 0,
         borderRadius: 4,
       },
     ],
@@ -129,20 +139,22 @@ export default function DashboardPage({ result }: Props) {
       {
         label: 'Maintainability',
         data: topFiles.map((f) => f.maintainability_index),
-        borderColor: '#6366f1',
-        backgroundColor: 'rgba(99,102,241,0.1)',
+        borderColor: '#D2C1B6',
+        backgroundColor: 'rgba(210, 193, 182, 0.05)',
         fill: true,
-        tension: 0.4,
+        tension: 0,
         pointRadius: 4,
+        pointBackgroundColor: '#D2C1B6',
       },
       {
         label: 'Instability',
-        data: topFiles.map((f) => f.instability * 100), // scale to 100 for visibility
+        data: topFiles.map((f) => f.instability * 100),
         borderColor: '#f59e0b',
-        backgroundColor: 'rgba(245,158,11,0.1)',
+        backgroundColor: 'rgba(245, 158, 11, 0.05)',
         fill: true,
-        tension: 0.4,
+        tension: 0,
         pointRadius: 4,
+        pointBackgroundColor: '#f59e0b',
       },
     ],
   };
@@ -152,17 +164,34 @@ export default function DashboardPage({ result }: Props) {
     maintainAspectRatio: false,
     plugins: {
       legend: {
-        labels: { color: '#94a3b8', font: { family: 'Inter' } },
+        position: 'top' as const,
+        labels: { 
+          color: '#adc5d6', 
+          font: { family: "'Inter', sans-serif", size: 11, weight: 600 },
+          usePointStyle: true,
+          padding: 20
+        },
       },
+      tooltip: {
+        backgroundColor: '#1B3C53',
+        borderColor: '#456882',
+        borderWidth: 2,
+        titleColor: '#D2C1B6',
+        bodyColor: '#adc5d6',
+        padding: 12,
+        cornerRadius: 8,
+      }
     },
     scales: {
       x: {
-        ticks: { color: '#64748b', font: { size: 10 } },
-        grid: { color: 'rgba(30,41,59,0.5)' },
+        ticks: { color: '#749aba', font: { size: 10, family: "'JetBrains Mono', monospace" } },
+        grid: { color: 'rgba(69, 104, 130, 0.15)', drawTicks: false },
+        border: { display: false }
       },
       y: {
-        ticks: { color: '#64748b' },
-        grid: { color: 'rgba(30,41,59,0.5)' },
+        ticks: { color: '#749aba', font: { size: 10, family: "'JetBrains Mono', monospace" } },
+        grid: { color: 'rgba(69, 104, 130, 0.15)', drawTicks: false },
+        border: { display: false }
       },
     },
   };
@@ -173,48 +202,50 @@ export default function DashboardPage({ result }: Props) {
     plugins: {
       legend: {
         position: 'bottom' as const,
-        labels: { color: '#94a3b8', padding: 16, font: { family: 'Inter' } },
+        labels: { 
+          color: '#7fa696', 
+          padding: 16, 
+          font: { family: "'JetBrains Mono', monospace", size: 10 },
+          usePointStyle: true
+        },
       },
     },
     cutout: '65%',
   };
 
-  /* ── Dashboard Sub-Components ──────────────────────────── */
-
   return (
     <div className="page-content">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-extrabold">{result.project_name}</h1>
-          <p className="text-[#94a3b8] text-sm">
-            Analysis ID: <code className="font-mono text-[var(--accent-hover)]">{result.analysis_id}</code>
+          <h1 className="text-3xl font-black tracking-tight">{result.project_name}</h1>
+          <p className="text-[var(--text-secondary)] text-xs mt-1 font-mono uppercase tracking-wider">
+            Analysis Reference: {result.analysis_id}
           </p>
         </div>
         <div className="flex gap-3">
-          <Link to="/export" className="btn btn-secondary btn-sm">📥 Export</Link>
-          <Link to="/analyze" className="btn btn-ghost btn-sm">New Analysis</Link>
+          <Link to="/export" className="btn btn-secondary btn-sm">Download Report</Link>
+          <Link to="/analyze" className="btn btn-ghost btn-sm">Start New</Link>
         </div>
       </div>
 
-      {/* Stat Cards */}
       <StatCards result={result} />
 
-      {/* Health Score + Risk Doughnut row */}
       <div className="charts-grid">
-        <div className="chart-container flex items-center justify-around">
+        <div className="chart-container flex items-center justify-around bg-[#0d1e1b] border-[#285A48]">
           <HealthCircle score={overview.health_score} />
-          <div className="text-center">
-            <div className="text-xs text-[var(--text-muted)] mb-2 uppercase tracking-wide">Languages</div>
+          <div className="text-left border-l border-[#285A48] pl-8">
+            <div className="text-[10px] text-[var(--text-muted)] mb-3 uppercase tracking-widest font-bold">Language Composition</div>
             {Object.entries(overview.languages).map(([lang, count]) => (
-              <div key={lang} className="text-sm text-[var(--text-secondary)] mb-1">
-                {lang}: <strong className="text-[var(--text-primary)]">{count}</strong> files
+              <div key={lang} className="text-xs text-[var(--text-secondary)] mb-1.5 flex justify-between gap-4">
+                <span className="font-mono">{lang}</span>
+                <strong className="text-[var(--text-primary)]">{count} files</strong>
               </div>
             ))}
-            <div className="mt-3 text-xs text-[var(--text-muted)] uppercase tracking-wide">
-              Avg Maintainability
+            <div className="mt-6 text-[10px] text-[var(--text-muted)] uppercase tracking-widest font-bold mb-1">
+              Maintainability
             </div>
-            <div className={`text-2xl font-extrabold ${overview.avg_maintainability >= 60 ? 'text-[var(--success)]' : 'text-[var(--warning)]'}`}>
+            <div className={`text-3xl font-black ${overview.avg_maintainability >= 60 ? 'text-[#10b981]' : 'text-[#f59e0b]'}`}>
               {overview.avg_maintainability}
             </div>
           </div>
@@ -222,70 +253,65 @@ export default function DashboardPage({ result }: Props) {
         <div className="chart-container">
           <div className="chart-header">
             <div className="chart-title">Risk Distribution</div>
-            <div className="chart-subtitle">Files by risk level</div>
+            <div className="chart-subtitle">File counts mapped to risk severity</div>
           </div>
-          <div className="h-[220px]">
+          <div className="h-[240px]">
             <Doughnut data={riskData} options={doughnutOptions} />
           </div>
         </div>
       </div>
 
-      {/* Charts row */}
       <div className="charts-grid">
         <div className="chart-container">
           <div className="chart-header">
-            <div className="chart-title">Complexity Analysis</div>
-            <div className="chart-subtitle">Cyclomatic vs Cognitive Complexity</div>
+            <div className="chart-title">Complexity Profile</div>
+            <div className="chart-subtitle">Direct comparison of Cyclomatic vs Cognitive metrics</div>
           </div>
-          <div className="h-[280px]">
+          <div className="h-[300px]">
             <Bar data={complexityData} options={chartOptions} />
           </div>
         </div>
         <div className="chart-container">
           <div className="chart-header">
-            <div className="chart-title">Coupling Analysis</div>
-            <div className="chart-subtitle">Incoming vs Outgoing dependencies</div>
+            <div className="chart-title">Structural Coupling</div>
+            <div className="chart-subtitle">Analyzing inter-module dependencies</div>
           </div>
-          <div className="h-[280px]">
+          <div className="h-[300px]">
             <Bar data={couplingData} options={chartOptions} />
           </div>
         </div>
       </div>
 
-      {/* Maintainability & Instability row */}
       <div className="charts-grid">
         <div className="chart-container">
           <div className="chart-header">
-            <div className="chart-title">Maintainability & Instability</div>
-            <div className="chart-subtitle">Stability trends across top files (Instability scaled x100)</div>
+            <div className="chart-title">Maintenance Trends</div>
+            <div className="chart-subtitle">Stability vs Maintainability Index</div>
           </div>
-          <div className="h-[250px]">
+          <div className="h-[280px]">
             <Line data={maintData} options={chartOptions} />
           </div>
         </div>
         <div className="chart-container">
-           {/* Placeholder or small metrics */}
-           <div className="chart-header">
-            <div className="chart-title">Summary Insights</div>
+          <div className="chart-header">
+            <div className="chart-title">Critical Hotspots</div>
           </div>
-          <div className="p-4 text-[var(--text-secondary)]">
-            <div className="mb-4">
-              <span className="text-[var(--accent)] font-semibold">Most Complex:</span> {files.length > 0 ? files[0].file_path : 'N/A'}
+          <div className="p-2 space-y-4">
+            <div className="p-4 bg-[#0d1e1b] border border-[#285A48] rounded-lg">
+              <div className="text-[10px] text-[var(--text-muted)] uppercase mb-1">Most Complex Module</div>
+              <div className="font-mono text-sm truncate text-[#ef4444]">{files.length > 0 ? files[0].file_path : 'N/A'}</div>
             </div>
-            <div className="mb-4">
-              <span className="text-[var(--success)] font-semibold">Most Stable:</span> {files.length > 0 ? files.reduce((prev, curr) => (prev.instability < curr.instability ? prev : curr)).file_path : 'N/A'}
-            </div>
-            <div>
-              <span className="text-[var(--danger)] font-semibold">Highest Churn:</span> {files.length > 0 ? files.reduce((prev, curr) => (prev.code_churn > curr.code_churn ? prev : curr)).file_path : 'N/A'}
+            <div className="p-4 bg-[#0d1e1b] border border-[#285A48] rounded-lg">
+              <div className="text-[10px] text-[var(--text-muted)] uppercase mb-1">Target for Refactoring</div>
+              <div className="font-mono text-sm truncate text-[#f59e0b]">
+                {files.length > 0 ? files.reduce((prev, curr) => (prev.instability > curr.instability ? prev : curr)).file_path : 'N/A'}
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Heatmap */}
       <RiskHeatmap files={files} />
-
-      {/* File Ranking Table */}
       <FileRankingTable files={files} />
     </div>
   );

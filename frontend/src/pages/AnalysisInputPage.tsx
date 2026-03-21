@@ -1,198 +1,219 @@
 import { useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { analyzeGitHub, analyzeUpload, analyzeLocal, checkAnalysisStatus } from '../api';
+import { 
+  Github, 
+  FileArchive, 
+  FolderPlus, 
+  Loader2, 
+  AlertCircle
+} from 'lucide-react';
+import { analyzeLocal, analyzeGitHub, analyzeUpload, checkAnalysisStatus } from '../api';
 import type { AnalysisResult } from '../types';
 
-type Tab = 'github' | 'upload' | 'local';
-
 interface Props {
-  onResult: (result: AnalysisResult) => void;
+  onAnalysisComplete: (result: AnalysisResult) => void;
 }
 
-export default function AnalysisInputPage({ onResult }: Props) {
-  const navigate = useNavigate();
-  const [tab, setTab] = useState<Tab>('github');
+type TabType = 'github' | 'zip' | 'local';
+
+export default function AnalysisInputPage({ onAnalysisComplete }: Props) {
+  const [tab, setTab] = useState<TabType>('github');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  // GitHub state
-  const [githubUrl, setGithubUrl] = useState('');
-  const [branch, setBranch] = useState('main');
-
-  // Upload state
-  const fileRef = useRef<HTMLInputElement>(null);
-  const [fileName, setFileName] = useState('');
-
-  // Local state
+  const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState<string>('');
+  
+  // Inputs
+  const [repoUrl, setRepoUrl] = useState('');
   const [localPath, setLocalPath] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleAnalyze = async () => {
-    setError('');
+  const startPolling = (taskId: string) => {
     setLoading(true);
-    try {
-      let taskRes: { task_id: string; status: string };
-      switch (tab) {
-        case 'github':
-          if (!githubUrl.trim()) throw new Error('Please enter a GitHub URL');
-          taskRes = await analyzeGitHub(githubUrl.trim(), branch || 'main');
-          break;
-        case 'upload':
-          if (!fileRef.current?.files?.[0]) throw new Error('Please select a zip file');
-          taskRes = await analyzeUpload(fileRef.current.files[0]);
-          break;
-        case 'local':
-          if (!localPath.trim()) throw new Error('Please enter a directory path');
-          taskRes = await analyzeLocal(localPath.trim());
-          break;
-        default:
-          throw new Error('Invalid tab');
+    setStatus('Analysis initiated...');
+    
+    const interval = setInterval(async () => {
+      try {
+        const res = await checkAnalysisStatus(taskId);
+        if (res.status === 'completed' && res.result) {
+          clearInterval(interval);
+          onAnalysisComplete(res.result);
+        } else if (res.status === 'failed') {
+          clearInterval(interval);
+          setError(res.error || 'The analysis engine encountered a fatal error.');
+          setLoading(false);
+        } else {
+          setStatus(res.status === 'processing' ? 'Crunching code metrics...' : 'Queueing task...');
+        }
+      } catch (err) {
+        clearInterval(interval);
+        setError('Lost connection to the analysis server.');
+        setLoading(false);
       }
-      
-      pollStatus(taskRes.task_id);
-    } catch (err: unknown) {
-      const errorObj = err as { response?: { data?: { detail?: string } }, message?: string };
-      const msg = errorObj?.response?.data?.detail || errorObj?.message || 'Analysis failed to start';
-      setError(String(msg));
+    }, 2000);
+  };
+
+  const handleGitHub = async () => {
+    if (!repoUrl) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const { task_id } = await analyzeGitHub(repoUrl);
+      startPolling(task_id);
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to start GitHub analysis.');
       setLoading(false);
     }
   };
 
-  const pollStatus = async (taskId: string) => {
+  const handleLocal = async () => {
+    if (!localPath) return;
+    setLoading(true);
+    setError(null);
     try {
-      const statusRes = await checkAnalysisStatus(taskId);
-      if (statusRes.status === 'completed' && statusRes.result) {
-        onResult(statusRes.result);
-        navigate('/dashboard');
-        setLoading(false);
-      } else if (statusRes.status === 'failed') {
-        throw new Error(statusRes.error || 'Analysis failed on server');
-      } else {
-        setTimeout(() => pollStatus(taskId), 2000);
-      }
-    } catch (err: unknown) {
-      const errorObj = err as { response?: { data?: { detail?: string } }, message?: string };
-      const msg = errorObj?.response?.data?.detail || errorObj?.message || 'Error checking status';
-      setError(String(msg));
+      const { task_id } = await analyzeLocal(localPath);
+      startPolling(task_id);
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Invalid directory path or access denied.');
+      setLoading(false);
+    }
+  };
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const { task_id } = await analyzeUpload(file);
+      startPolling(task_id);
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to upload and analyze zip archive.');
       setLoading(false);
     }
   };
 
   return (
-    <div className="input-page">
-      <h1 className="input-page-title">Analyze a Repository</h1>
-      <p className="input-page-subtitle">
-        Choose how you'd like to provide your codebase for analysis
-      </p>
-
-      <div className="input-tabs">
-        <button className={`input-tab ${tab === 'github' ? 'active' : ''}`} onClick={() => setTab('github')}>
-          🔗 GitHub URL
-        </button>
-        <button className={`input-tab ${tab === 'upload' ? 'active' : ''}`} onClick={() => setTab('upload')}>
-          📦 Upload Zip
-        </button>
-        <button className={`input-tab ${tab === 'local' ? 'active' : ''}`} onClick={() => setTab('local')}>
-          📁 Local Directory
-        </button>
-      </div>
-
-      {error && <div className="error-message">⚠️ {error}</div>}
-
-      {tab === 'github' && (
-        <div className="input-panel">
-          <div className="card" style={{ marginBottom: '1.5rem' }}>
-            <div className="input-group" style={{ marginBottom: '1rem' }}>
-              <label className="input-label">Repository URL</label>
-              <input
-                className="input"
-                type="url"
-                placeholder="https://github.com/user/repo"
-                value={githubUrl}
-                onChange={(e) => setGithubUrl(e.target.value)}
-                disabled={loading}
-              />
-            </div>
-            <div className="input-group">
-              <label className="input-label">Branch (optional)</label>
-              <input
-                className="input"
-                type="text"
-                placeholder="main"
-                value={branch}
-                onChange={(e) => setBranch(e.target.value)}
-                disabled={loading}
-              />
-            </div>
-          </div>
+    <div className="page-content flex flex-col items-center justify-center min-h-[70vh]">
+      <div className="w-full max-w-xl">
+        <div className="text-center mb-10">
+          <h1 className="text-4xl font-black mb-3 text-[var(--text-primary)]">Code Intelligence</h1>
+          <p className="text-[var(--text-secondary)]">Choose your ingestion method to begin the visual audit.</p>
         </div>
-      )}
 
-      {tab === 'upload' && (
-        <div className="input-panel">
-          <div className="card" style={{ marginBottom: '1.5rem' }}>
-            <div className="input-group">
-              <label className="input-label">ZIP Archive</label>
-              <div className="input-row">
-                <input
-                  className="input"
-                  type="text"
-                  placeholder="No file selected"
-                  value={fileName}
-                  readOnly
+        {/* ── Tabs ── */}
+        <div className="flex bg-[var(--bg-secondary)] p-1 rounded-xl border-2 border-[var(--border)] mb-8">
+          <button 
+            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg font-bold transition-all ${tab === 'github' ? 'bg-[var(--accent)] text-[var(--bg-primary)] shadow-lg' : 'text-[var(--text-muted)] hover:text-white'}`}
+            onClick={() => setTab('github')}
+            disabled={loading}
+          >
+            <Github size={18} /> GitHub
+          </button>
+          <button 
+            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg font-bold transition-all ${tab === 'zip' ? 'bg-[var(--accent)] text-[var(--bg-primary)] shadow-lg' : 'text-[var(--text-muted)] hover:text-white'}`}
+            onClick={() => setTab('zip')}
+            disabled={loading}
+          >
+            <FileArchive size={18} /> Zip
+          </button>
+          <button 
+            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg font-bold transition-all ${tab === 'local' ? 'bg-[var(--accent)] text-[var(--bg-primary)] shadow-lg' : 'text-[var(--text-muted)] hover:text-white'}`}
+            onClick={() => setTab('local')}
+            disabled={loading}
+          >
+            <FolderPlus size={18} /> Local
+          </button>
+        </div>
+
+        {/* ── Input Panels ── */}
+        <div className="card min-h-[220px] flex flex-col justify-center">
+          {tab === 'github' && (
+            <div className="animate-in fade-in duration-300">
+              <div className="input-group">
+                <label className="input-label">Public Repository URL</label>
+                <input 
+                  type="text" 
+                  className="input" 
+                  placeholder="https://github.com/facebook/react"
+                  value={repoUrl}
+                  onChange={(e) => setRepoUrl(e.target.value)}
+                  disabled={loading}
                 />
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => fileRef.current?.click()}
+              </div>
+              <button 
+                className="btn btn-primary w-full mt-2" 
+                onClick={handleGitHub}
+                disabled={loading || !repoUrl}
+              >
+                {loading ? <Loader2 className="animate-spin" /> : 'Connect & Analyze'}
+              </button>
+            </div>
+          )}
+
+          {tab === 'zip' && (
+            <div className="text-center animate-in fade-in duration-300">
+              <div className="mb-6 p-8 border-2 border-dashed border-[var(--border)] rounded-xl bg-[var(--bg-primary)]">
+                <FileArchive size={40} className="mx-auto mb-4 text-[var(--text-muted)]" />
+                <p className="text-sm text-[var(--text-secondary)] mb-4">Upload a ZIP containing your source code</p>
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  onChange={handleUpload} 
+                  hidden 
+                  accept=".zip"
+                />
+                <button 
+                  className="btn btn-secondary" 
+                  onClick={() => fileInputRef.current?.click()}
                   disabled={loading}
                 >
-                  Browse
+                  Choose Archive
                 </button>
               </div>
-              <input
-                ref={fileRef}
-                type="file"
-                accept=".zip"
-                style={{ display: 'none' }}
-                onChange={(e) => setFileName(e.target.files?.[0]?.name || '')}
-              />
+            </div>
+          )}
+
+          {tab === 'local' && (
+            <div className="animate-in fade-in duration-300">
+              <div className="input-group">
+                <label className="input-label">Absolute Filesystem Path</label>
+                <input 
+                  type="text" 
+                  className="input" 
+                  placeholder="C:\Projects\Replexity"
+                  value={localPath}
+                  onChange={(e) => setLocalPath(e.target.value)}
+                  disabled={loading}
+                />
+              </div>
+              <button 
+                className="btn btn-primary w-full mt-2" 
+                onClick={handleLocal}
+                disabled={loading || !localPath}
+              >
+                {loading ? <Loader2 className="animate-spin" /> : 'Process Local Path'}
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* ── Loading & Status ── */}
+        {loading && (
+          <div className="mt-8 flex flex-col items-center gap-4">
+            <span className="text-[var(--accent)] font-bold text-sm uppercase tracking-widest">{status}</span>
+            <div className="w-full h-1.5 bg-[var(--bg-secondary)] rounded-full overflow-hidden border-2 border-[var(--border)]">
+              <div className="h-full bg-[var(--accent)] animate-progress-bar"></div>
             </div>
           </div>
-        </div>
-      )}
-
-      {tab === 'local' && (
-        <div className="input-panel">
-          <div className="card" style={{ marginBottom: '1.5rem' }}>
-            <div className="input-group">
-              <label className="input-label">Directory Path</label>
-              <input
-                className="input"
-                type="text"
-                placeholder="C:\Projects\my-app or /home/user/project"
-                value={localPath}
-                onChange={(e) => setLocalPath(e.target.value)}
-                disabled={loading}
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-      <button
-        className="btn btn-primary btn-lg"
-        style={{ width: '100%' }}
-        onClick={handleAnalyze}
-        disabled={loading}
-      >
-        {loading ? (
-          <>
-            <span className="spinner" style={{ width: 20, height: 20, borderWidth: 2 }}></span>
-            Analyzing... This may take a moment
-          </>
-        ) : (
-          <>🔍 Analyze Repository</>
         )}
-      </button>
+
+        {/* ── Error Display ── */}
+        {error && (
+          <div className="mt-8 flex items-start gap-3 p-4 bg-red-500/10 border-2 border-red-500/20 rounded-xl text-red-400">
+            <AlertCircle size={20} className="shrink-0 mt-0.5" />
+            <div className="text-sm font-bold">{error}</div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

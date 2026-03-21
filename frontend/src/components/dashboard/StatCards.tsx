@@ -1,3 +1,4 @@
+import { Activity, Shield, AlertTriangle, FileCode } from 'lucide-react';
 import type { AnalysisResult } from '../../types';
 
 interface Props {
@@ -5,34 +6,54 @@ interface Props {
 }
 
 export function StatCards({ result }: Props) {
-  const { overview } = result;
+  const { overview, files } = result;
 
   return (
-    <div className="stats-grid">
-      <div className="stat-card accent">
-        <div className="stat-icon accent">📁</div>
-        <div className="card-title">Files Analyzed</div>
-        <div className="card-value">{overview.total_files}</div>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <Card 
+        label="Total Files" 
+        value={files.length} 
+        icon={<FileCode size={20} />} 
+        color="#D2C1B6"
+        trend="Active"
+      />
+      <Card 
+        label="Avg. Maintenance" 
+        value={`${overview.avg_maintainability}%`} 
+        icon={<Shield size={20} />} 
+        color="#10b981"
+        trend="Stable"
+      />
+      <Card 
+        label="Global Health" 
+        value={overview.health_score} 
+        icon={<Activity size={20} />} 
+        color="#D2C1B6"
+        trend="System"
+      />
+      <Card 
+        label="Complexity Alerts" 
+        value={files.filter(f => f.risk_score > 70).length} 
+        icon={<AlertTriangle size={20} />} 
+        color="#ef4444"
+        trend="Urgent"
+      />
+    </div>
+  );
+}
+
+function Card({ label, value, icon, color, trend }: any) {
+  return (
+    <div className="card flex flex-col justify-between hover:border-[var(--accent)] transition-all bg-[#234C6A]">
+      <div className="flex items-center justify-between mb-6">
+        <div className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">{label}</div>
+        <div style={{ color }}>{icon}</div>
       </div>
-      <div className="stat-card info">
-        <div className="stat-icon info">⚡</div>
-        <div className="card-title">Total Functions</div>
-        <div className="card-value">{overview.total_functions}</div>
-      </div>
-      <div className="stat-card warning">
-        <div className="stat-icon warning">📏</div>
-        <div className="card-title">Total LOC</div>
-        <div className="card-value">{overview.total_loc.toLocaleString()}</div>
-      </div>
-      <div className="stat-card success">
-        <div className="stat-icon success">🧮</div>
-        <div className="card-title">Avg Complexity</div>
-        <div className="card-value">{overview.avg_complexity}</div>
-      </div>
-      <div className="stat-card danger">
-        <div className="stat-icon danger">🛡️</div>
-        <div className="card-title">Code Smells</div>
-        <div className="card-value">{result.code_smells.length}</div>
+      <div className="flex items-end justify-between gap-4">
+        <div className="text-3xl font-black font-mono mr-2">{value}</div>
+        <div className="text-[9px] font-bold px-2 py-1 rounded bg-[var(--bg-primary)] text-[var(--text-secondary)] border border-[var(--border)] whitespace-nowrap mb-1">
+          {trend}
+        </div>
       </div>
     </div>
   );
