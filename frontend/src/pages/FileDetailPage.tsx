@@ -1,6 +1,7 @@
 import { useParams, Link } from 'react-router-dom';
 import { ChevronLeft, Code2, Search, AlertTriangle, Bug } from 'lucide-react';
 import type { AnalysisResult } from '../types';
+import { FloatingElementsLayer } from '../components/FloatingElements';
 
 interface Props {
   result: AnalysisResult | null;
@@ -45,7 +46,9 @@ export default function FileDetailPage({ result }: Props) {
   };
 
   return (
-    <div style={{ maxWidth: 1100, margin: '0 auto', padding: '32px 48px' }}>
+    <div style={{ position: 'relative', minHeight: '100vh' }}>
+      <FloatingElementsLayer variant="filedetail" />
+      <div style={{ position: 'relative', zIndex: 1, maxWidth: 1100, margin: '0 auto', padding: '32px 48px' }}>
 
       {/* ── Header ── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 32, paddingBottom: 24, borderBottom: '2px solid var(--border)' }}>
@@ -191,6 +194,7 @@ export default function FileDetailPage({ result }: Props) {
             ))}
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

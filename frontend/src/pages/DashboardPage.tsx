@@ -16,6 +16,7 @@ import { HealthCircle } from '../components/dashboard/HealthCircle';
 import { StatCards } from '../components/dashboard/StatCards';
 import { RiskHeatmap } from '../components/dashboard/RiskHeatmap';
 import { FileRankingTable } from '../components/dashboard/FileRankingTable';
+import { FloatingElementsLayer } from '../components/FloatingElements';
 
 interface Props {
   result: AnalysisResult | null;
@@ -106,7 +107,9 @@ export default function DashboardPage({ result }: Props) {
   };
 
   return (
-    <div style={{ maxWidth: 1280, margin: '0 auto', padding: '32px 48px' }}>
+    <div style={{ position: 'relative', minHeight: '100vh' }}>
+      <FloatingElementsLayer variant="dashboard" />
+      <div style={{ position: 'relative', zIndex: 1, maxWidth: 1280, margin: '0 auto', padding: '32px 48px' }}>
 
       {/* ── Header ── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
@@ -210,6 +213,7 @@ export default function DashboardPage({ result }: Props) {
 
       {/* ── File Ranking Table ── */}
       <FileRankingTable files={files} />
+      </div>
     </div>
   );
 }
