@@ -2,6 +2,7 @@ import {
   Activity, BarChart3, ShieldCheck, Gauge, Flame,
   TrendingUp, Grid3X3, LineChart, PieChart, Cpu,
   Braces, Hash, Sigma, Target,
+  Download, FileJson, FileSpreadsheet, FileText, Printer, ClipboardList, Archive,
 } from 'lucide-react';
 
 // Analytics/metrics-themed floating badges for Dashboard
@@ -44,6 +45,25 @@ const fileDetailElements = [
   { icon: <BarChart3 size={9} />,  label: 'cognitive',  left: '80%', top: '16%', rot: -8,  op: 0.15 },
 ];
 
+// Export-themed floating badges
+const exportElements = [
+  // Left edge
+  { icon: <Download size={13} />,        label: 'export',     left: '1%',  top: '10%', rot: -8,  op: 0.45 },
+  { icon: <FileJson size={11} />,         label: 'json',       left: '4%',  top: '28%', rot: 6,   op: 0.35 },
+  { icon: <FileSpreadsheet size={12} />,  label: 'csv',        left: '1%',  top: '46%', rot: -10, op: 0.4 },
+  { icon: <Printer size={11} />,          label: 'print',      left: '3%',  top: '64%', rot: 8,   op: 0.25 },
+  { icon: <Archive size={10} />,          label: 'archive',    left: '2%',  top: '82%', rot: -5,  op: 0.2 },
+  // Right edge
+  { icon: <FileText size={13} />,         label: 'report',     left: '93%', top: '8%',  rot: 10,  op: 0.45 },
+  { icon: <ClipboardList size={11} />,    label: 'summary',    left: '95%', top: '26%', rot: -12, op: 0.35 },
+  { icon: <ShieldCheck size={12} />,      label: 'verified',   left: '91%', top: '44%', rot: 5,   op: 0.4 },
+  { icon: <BarChart3 size={11} />,        label: 'data',       left: '94%', top: '62%', rot: -8,  op: 0.25 },
+  { icon: <Download size={10} />,         label: 'save',       left: '92%', top: '80%', rot: 7,   op: 0.2 },
+  // Scattered
+  { icon: <FileJson size={9} />,          label: 'api',        left: '18%', top: '15%', rot: 12,  op: 0.18 },
+  { icon: <FileSpreadsheet size={9} />,   label: 'table',      left: '78%', top: '18%', rot: -8,  op: 0.18 },
+];
+
 interface FloatingBadge {
   icon: React.ReactNode;
   label: string;
@@ -53,8 +73,8 @@ interface FloatingBadge {
   op: number;
 }
 
-export function FloatingElementsLayer({ variant }: { variant: 'dashboard' | 'filedetail' }) {
-  const elements: FloatingBadge[] = variant === 'dashboard' ? dashboardElements : fileDetailElements;
+export function FloatingElementsLayer({ variant }: { variant: 'dashboard' | 'filedetail' | 'export' }) {
+  const elements: FloatingBadge[] = variant === 'dashboard' ? dashboardElements : variant === 'export' ? exportElements : fileDetailElements;
 
   return (
     <div style={{
