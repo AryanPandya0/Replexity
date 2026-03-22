@@ -1,6 +1,13 @@
-# AI Code Complexity Visualizer
+# Replexity — AI Code Complexity Visualizer
 
-An AI-powered code analysis platform that examines Python, JavaScript, and TypeScript codebases for complexity, risk, code smells, and maintainability — with an interactive dashboard featuring charts, heatmaps, and detailed file-level views.
+An AI-powered code analysis platform that examines **Python, JavaScript, and TypeScript** codebases for complexity, risk, code smells, and maintainability — with an interactive dashboard featuring charts, heatmaps, and detailed file-level views.
+
+![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)
+![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-5-646CFF?logo=vite&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-green)
 
 ---
 
@@ -12,30 +19,35 @@ An AI-powered code analysis platform that examines Python, JavaScript, and TypeS
 - **Node.js 18+** and **npm**
 - **Git** (for analyzing GitHub repos)
 
-### 1. Install Backend Dependencies
+### 1. Clone the Repository
 
 ```bash
-cd backend
-pip install -r requirements.txt
+git clone https://github.com/AryanPandya0/Complexity-Visualizer.git
+cd Complexity-Visualizer
 ```
 
-### 2. Install Frontend Dependencies
+### 2. Install Backend Dependencies
+
+```bash
+pip install -r backend/requirements.txt
+```
+
+### 3. Install Frontend Dependencies
 
 ```bash
 cd frontend
 npm install
 ```
 
-### 3. Start the Backend (Terminal 1)
+### 4. Start the Backend (Terminal 1)
 
 ```bash
-cd backend
-python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+uvicorn backend.main:app --reload
 ```
 
-The API will be available at `http://localhost:8000`. API docs at `http://localhost:8000/docs`.
+The API will be available at `http://localhost:8000`. Interactive API docs at `http://localhost:8000/docs`.
 
-### 4. Start the Frontend (Terminal 2)
+### 5. Start the Frontend (Terminal 2)
 
 ```bash
 cd frontend
@@ -48,17 +60,35 @@ Open `http://localhost:5173` in your browser. The Vite dev server proxies `/api`
 
 ## 📊 Features
 
+### Core Analysis
+
 | Feature | Description |
 |---|---|
 | **Repository Input** | Analyze via GitHub URL, ZIP upload, or local directory path |
-| **Code Parsing** | Python AST + JS/TS heuristic parsing for functions, classes, nesting, branches |
-| **Cyclomatic Complexity** | Industry-standard complexity metrics via `radon` (Python) and custom analysis |
-| **AI Risk Scoring** | Weighted multi-factor risk score (0-100) for every file |
-| **Bug Prediction** | Heuristic-based bug hotspot detection with probability scores |
-| **Code Smell Detection** | Long Method, God Object, Deep Nesting, Large Class, High Complexity |
+| **Tree-sitter Parsing** | Accurate, language-native AST parsing for Python, JS, and TS |
+| **Cyclomatic Complexity** | Industry-standard complexity metrics via `radon` (Python) and Tree-sitter |
+| **Cognitive Complexity** | Measures how *difficult* code is to understand (beyond cyclomatic counting) |
+| **Halstead Metrics** | Volume, Difficulty, and Effort metrics for scientific code measurement |
+| **Maintainability Index** | Composite score (0–100) combining LOC, complexity, and volume |
+
+### Advanced Intelligence
+
+| Feature | Description |
+|---|---|
+| **AI Risk Scoring** | Weighted multi-factor risk score (0–100) for every file |
+| **Bug Prediction** | Mathematical probability model for hidden-bug hotspot detection |
+| **Code Smell Detection** | Long Method, God Object, Deep Nesting, Too Many Parameters, and more |
+| **External Linter Integration** | Ruff (Python) and ESLint (JS/TS) findings merged into results |
+| **Coupling Analysis** | Afferent/Efferent coupling (Ca/Ce) and Instability per file |
+| **Code Churn** | Git-based change frequency tracking to identify volatile files |
 | **Refactor Suggestions** | Actionable, prioritized improvement recommendations |
-| **Health Score** | Project-level code health (0-100) from 4 weighted components |
-| **Risk Heatmap** | Color-coded grid visualization from green (safe) to red (critical) |
+
+### Visualization & Reporting
+
+| Feature | Description |
+|---|---|
+| **Health Score** | Project-level code health (0–100) from weighted components |
+| **Risk Heatmap** | Color-coded grid from green (safe) to red (critical) |
 | **Interactive Dashboard** | Charts (bar, doughnut, line), stat cards, sortable file table |
 | **File Detail View** | Per-file metrics, function table, smells, and refactoring suggestions |
 | **Export Reports** | Download analysis as JSON, CSV, or PDF |
@@ -68,34 +98,42 @@ Open `http://localhost:5173` in your browser. The Vite dev server proxies `/api`
 ## 🏗️ Architecture
 
 ```
-ai-code-visualizer/
+Complexity-Visualizer/
 ├── backend/
 │   ├── main.py                          # FastAPI entry point
 │   ├── requirements.txt
 │   ├── api/
-│   │   ├── routes.py                    # API endpoints
-│   │   └── schemas.py                   # Pydantic models
+│   │   ├── routes.py                    # API endpoints + async task pipeline
+│   │   └── schemas.py                   # Pydantic response models
 │   └── analysis_engine/
-│       ├── repo_manager.py              # Git clone, zip extract, local dir
-│       ├── code_parser.py               # AST parsing (Python, JS/TS)
-│       ├── complexity_analyzer.py       # Cyclomatic complexity, MI
-│       ├── risk_model.py                # AI risk scoring (0-100)
-│       ├── bug_predictor.py             # Bug hotspot prediction
-│       ├── smell_detector.py            # Code smell detection
-│       ├── refactor_engine.py           # Refactoring suggestions
-│       └── health_score.py              # Project health score
+│       ├── repo_manager.py              # Git clone, zip extract, local dir, code churn
+│       ├── code_parser.py               # Tree-sitter AST parsing (Python, JS/TS)
+│       ├── complexity_analyzer.py       # Cyclomatic, cognitive, Halstead, MI
+│       ├── risk_model.py                # AI risk scoring (0–100)
+│       ├── bug_predictor.py             # Bug hotspot probability model
+│       ├── smell_detector.py            # Code smell detection engine
+│       ├── linter_service.py            # External linter integration (Ruff, ESLint)
+│       ├── refactor_engine.py           # Refactoring suggestion generator
+│       └── health_score.py              # Project health score calculator
 ├── frontend/
 │   ├── src/
-│   │   ├── App.tsx                      # Root component with routing
+│   │   ├── App.tsx                      # Root component with routing & navbar
 │   │   ├── api.ts                       # API client (axios)
 │   │   ├── types.ts                     # TypeScript interfaces
 │   │   ├── index.css                    # Design system (dark theme)
-│   │   └── pages/
-│   │       ├── LandingPage.tsx          # Hero + features
-│   │       ├── AnalysisInputPage.tsx    # GitHub / Upload / Local input
-│   │       ├── DashboardPage.tsx        # Charts, heatmap, file table
-│   │       ├── FileDetailPage.tsx       # Per-file detail view
-│   │       └── ExportPage.tsx           # JSON / CSV / PDF export
+│   │   ├── pages/
+│   │   │   ├── LandingPage.tsx          # Hero section + feature showcase
+│   │   │   ├── AnalysisInputPage.tsx    # GitHub URL / ZIP upload / local path input
+│   │   │   ├── DashboardPage.tsx        # Charts, heatmap, file ranking table
+│   │   │   ├── FileDetailPage.tsx       # Per-file deep-dive view
+│   │   │   └── ExportPage.tsx           # JSON / CSV / PDF export
+│   │   └── components/
+│   │       ├── FloatingElements.tsx     # 3D animated background elements
+│   │       └── dashboard/
+│   │           ├── StatCards.tsx         # Overview metric cards
+│   │           ├── HealthCircle.tsx      # Animated health score ring
+│   │           ├── RiskHeatmap.tsx       # Interactive risk grid
+│   │           └── FileRankingTable.tsx  # Sortable file metrics table
 │   └── ...
 └── README.md
 ```
@@ -104,11 +142,21 @@ ai-code-visualizer/
 
 ## 🔌 API Endpoints
 
+### Analysis (Async)
+
+Analysis requests return a `task_id` immediately. Poll the status endpoint until the task completes.
+
 | Method | Endpoint | Description |
 |---|---|---|
 | `POST` | `/api/analyze/github` | Clone & analyze a GitHub repo |
 | `POST` | `/api/analyze/upload` | Upload & analyze a ZIP file |
 | `POST` | `/api/analyze/local` | Analyze a local directory |
+| `GET` | `/api/status/{task_id}` | Poll task status (pending → processing → completed) |
+
+### Results & Export
+
+| Method | Endpoint | Description |
+|---|---|---|
 | `GET` | `/api/results/{id}` | Get cached analysis results |
 | `GET` | `/api/results/{id}/file/{path}` | Get file-level detail |
 | `GET` | `/api/export/{id}/json` | Export as JSON |
@@ -127,16 +175,36 @@ Risk Score = 0.35 × normalized_complexity
            + 0.10 × branch_density
 ```
 
-Each metric is normalized to a 0-100 scale. The final score classifies files as:
-- **Low** (0-24) · **Medium** (25-49) · **High** (50-74) · **Critical** (75-100)
+Each metric is normalized to a 0–100 scale. The final score classifies files as:
+- **Low** (0–24) · **Medium** (25–49) · **High** (50–74) · **Critical** (75–100)
+
+---
+
+## 🔬 Metrics Glossary
+
+| Metric | What It Measures |
+|---|---|
+| **Cyclomatic Complexity** | Number of independent execution paths (if/for/while/case branches) |
+| **Cognitive Complexity** | Human difficulty of understanding control flow (weighted nesting) |
+| **Halstead Volume** | Program "size" based on operators and operands |
+| **Halstead Difficulty** | How error-prone the code is to write |
+| **Halstead Effort** | Estimated mental effort to develop or understand |
+| **Maintainability Index** | Composite score: higher = easier to maintain |
+| **Coupling (Ca)** | Afferent coupling — how many files depend on this file |
+| **Coupling (Ce)** | Efferent coupling — how many files this file depends on |
+| **Instability** | Ce / (Ca + Ce) — closer to 1.0 = more volatile |
+| **Code Churn** | Git commit frequency — high churn may indicate instability |
 
 ---
 
 ## 🛠️ Tech Stack
 
-**Backend:** Python, FastAPI, radon, gitpython, fpdf2  
-**Frontend:** React, TypeScript, TailwindCSS v4, Chart.js (via react-chartjs-2)  
-**Build Tool:** Vite
+| Layer | Technologies |
+|---|---|
+| **Backend** | Python, FastAPI, Tree-sitter, radon, GitPython, fpdf2 |
+| **Frontend** | React 18, TypeScript, TailwindCSS v4, Chart.js, Lucide Icons |
+| **Build** | Vite |
+| **Linters** | Ruff (Python), ESLint (JS/TS) — integrated into analysis |
 
 ---
 
