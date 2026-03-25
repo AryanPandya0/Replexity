@@ -1,6 +1,8 @@
 """
 FastAPI application entry point.
 """
+import os
+
 from backend.api.routes import router
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,10 +13,14 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# CORS – allow frontend dev server
+# CORS – read allowed origins from env; default to Vite dev server.
+# In production set: CORS_ORIGINS=https://yourdomain.com
+_cors_env = os.environ.get("CORS_ORIGINS", "http://localhost:5173")
+CORS_ORIGINS = [origin.strip() for origin in _cors_env.split(",") if origin.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
