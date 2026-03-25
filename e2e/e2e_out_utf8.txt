@@ -1,0 +1,28 @@
+﻿
+Running 1 test using 1 worker
+
+  Γ£ÿ  1 [chromium] ΓÇ║ tests\user_flow.spec.ts:4:7 ΓÇ║ Replexity User Flow ΓÇ║ completes a full GitHub repository analysis flow (30.0s)
+
+
+  1) [chromium] ΓÇ║ tests\user_flow.spec.ts:4:7 ΓÇ║ Replexity User Flow ΓÇ║ completes a full GitHub repository analysis flow 
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: page.waitForURL: Test timeout of 30000ms exceeded.
+    =========================== logs ===========================
+    waiting for navigation until "load"
+    ============================================================
+
+      24 |     // 5. Wait for the analysis to process and redirect to dashboard
+      25 |     // This can take a bit as the backend clones the repo and runs the analysis models
+    > 26 |     await page.waitForURL(/.*\/dashboard/, { timeout: 60000 });
+         |                ^
+      27 |     
+      28 |     // 6. Assert dashboard metrics are rendered
+      29 |     await expect(page.getByText(/Project Overview/i)).toBeVisible();
+        at D:\Complexity Visualizer\e2e\tests\user_flow.spec.ts:26:16
+
+    Error Context: test-results\user_flow-Replexity-User-F-4ad98-ub-repository-analysis-flow-chromium\error-context.md
+
+  1 failed
+    [chromium] ΓÇ║ tests\user_flow.spec.ts:4:7 ΓÇ║ Replexity User Flow ΓÇ║ completes a full GitHub repository analysis flow 
