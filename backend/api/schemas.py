@@ -1,16 +1,34 @@
 """
 API Pydantic schemas for request/response models.
 """
+import re
 from enum import Enum
 from typing import Dict, List, Optional
 
-from pydantic import BaseModel, Field  # type: ignore
+from pydantic import BaseModel, Field, field_validator  # type: ignore
+
+# Regex: https://github.com/<owner>/<repo>[.git][/...]
+# Also accepts gitlab.com.
+_REPO_URL_RE = re.compile(
+    r"^https://(github\.com|gitlab\.com)/[\w.\-]+/[\w.\-]+(\.git)?(/.*)?$"
+)
 
 # ── Request Models ──────────────────────────────────────────────
 
 class GitHubAnalysisRequest(BaseModel):
-    url: str = Field(..., description="GitHub repository URL")
+    url: str = Field(..., description="GitHub/GitLab repository URL")
     branch: Optional[str] = Field("main", description="Branch to analyze")
+
+    @field_validator("url")
+    @classmethod
+    def validate_repo_url(cls, v: str) -> str:
+        v = v.strip().rstrip("/")
+        if not _REPO_URL_RE.match(v):
+            raise ValueError(
+                "URL must be a valid GitHub or GitLab repository URL "
+                "(e.g. https://github.com/owner/repo)"
+            )
+        return v
 
 
 class LocalAnalysisRequest(BaseModel):
