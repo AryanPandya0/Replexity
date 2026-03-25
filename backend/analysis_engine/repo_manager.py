@@ -21,6 +21,10 @@ IGNORE_DIRS = {
 WORK_DIR = Path(tempfile.gettempdir()) / "code_visualizer_repos"
 WORK_DIR.mkdir(exist_ok=True)
 
+# ── Zip extraction safety limits ────────────────────────────────
+MAX_UNCOMPRESSED_SIZE = 500 * 1024 * 1024   # 500 MB
+MAX_ZIP_FILE_COUNT = 10_000
+
 
 def _generate_id() -> str:
     return uuid.uuid4().hex[:12]
@@ -58,12 +62,43 @@ def clone_github_repo(url: str, branch: str = "main") -> Tuple[str, str, List[st
 
 
 def extract_zip(zip_path: str) -> Tuple[str, str, List[str]]:
-    """Extract a zip archive and return (analysis_id, root, source_files)."""
+    """Extract a zip archive with safety guards and return (analysis_id, root, source_files)."""
     analysis_id = _generate_id()
     dest = str(WORK_DIR / analysis_id)
     os.makedirs(dest, exist_ok=True)
+
     with zipfile.ZipFile(zip_path, "r") as zf:
+        entries = zf.infolist()
+
+        # Guard 1: max file count
+        if len(entries) > MAX_ZIP_FILE_COUNT:
+            shutil.rmtree(dest, ignore_errors=True)
+            raise ValueError(
+                f"Zip contains {len(entries)} entries, "
+                f"exceeding the limit of {MAX_ZIP_FILE_COUNT}."
+            )
+
+        # Guard 2: max uncompressed size
+        total_size = sum(info.file_size for info in entries)
+        if total_size > MAX_UNCOMPRESSED_SIZE:
+            shutil.rmtree(dest, ignore_errors=True)
+            raise ValueError(
+                f"Zip uncompressed size ({total_size:,} bytes) exceeds "
+                f"the limit of {MAX_UNCOMPRESSED_SIZE:,} bytes."
+            )
+
+        # Guard 3: path traversal (zip-slip)
+        real_dest = os.path.realpath(dest)
+        for info in entries:
+            target = os.path.realpath(os.path.join(dest, info.filename))
+            if not target.startswith(real_dest + os.sep) and target != real_dest:
+                shutil.rmtree(dest, ignore_errors=True)
+                raise ValueError(
+                    f"Zip entry '{info.filename}' attempts path traversal."
+                )
+
         zf.extractall(dest)
+
     source_files = _collect_source_files(dest)
     return analysis_id, dest, source_files
 
