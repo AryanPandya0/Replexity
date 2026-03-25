@@ -394,8 +394,39 @@ async def analyze_upload(background_tasks: BackgroundTasks, file: UploadFile = F
     return {"task_id": task.task_id, "status": task.status}
 
 
+# ── Local analysis security ─────────────────────────────────────
+ALLOW_LOCAL_ANALYSIS = os.environ.get(
+    "ALLOW_LOCAL_ANALYSIS", "false"
+).lower() in ("1", "true", "yes")
+LOCAL_ANALYSIS_ALLOWED_ROOTS = [
+    p.strip()
+    for p in os.environ.get("LOCAL_ANALYSIS_ALLOWED_ROOTS", "").split(",")
+    if p.strip()
+]
+
+
 @router.post("/analyze/local")
 async def analyze_local(req: LocalAnalysisRequest, background_tasks: BackgroundTasks):
+    # Gate 1: feature flag
+    if not ALLOW_LOCAL_ANALYSIS:
+        raise HTTPException(
+            status_code=403,
+            detail="Local analysis is disabled. Set ALLOW_LOCAL_ANALYSIS=true to enable.",
+        )
+
+    # Gate 2: restrict to allowed directories (if configured)
+    real_path = os.path.realpath(req.path)
+    if LOCAL_ANALYSIS_ALLOWED_ROOTS:
+        allowed = any(
+            real_path.startswith(os.path.realpath(root))
+            for root in LOCAL_ANALYSIS_ALLOWED_ROOTS
+        )
+        if not allowed:
+            raise HTTPException(
+                status_code=403,
+                detail="Requested path is outside allowed directories.",
+            )
+
     task = _create_task()
     task.status = TaskStatus.PROCESSING
 
