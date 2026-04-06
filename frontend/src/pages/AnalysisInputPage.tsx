@@ -9,7 +9,7 @@ import {
   GitCommit,
   Star,
   Upload,
-  File,
+  File as LucideFile,
   Package,
   FolderTree,
   HardDrive,
@@ -25,6 +25,57 @@ interface Props {
 }
 
 type TabType = 'github' | 'zip' | 'local';
+
+const TABS: { key: TabType; label: string; icon: React.ReactNode }[] = [
+  { key: 'github', label: 'GitHub', icon: <Github size={16} /> },
+  { key: 'zip', label: 'Zip Archive', icon: <FileArchive size={16} /> },
+  { key: 'local', label: 'Local Path', icon: <FolderOpen size={16} /> },
+];
+
+const FLOATING_ELEMENTS: Record<TabType, { icon: React.ReactNode; label: string; left: string; top: string; rot: number; op: number }[]> = {
+  github: [
+    { icon: <GitBranch size={14} />, label: 'branch',   left: '3%',  top: '12%', rot: -10, op: 0.5 },
+    { icon: <Star size={12} />,      label: 'starred',  left: '6%',  top: '35%', rot: 6,   op: 0.4 },
+    { icon: <GitCommit size={14} />, label: 'commit',   left: '2%',  top: '58%', rot: -8,  op: 0.45 },
+    { icon: <Github size={12} />,    label: 'clone',    left: '8%',  top: '78%', rot: 12,  op: 0.35 },
+    { icon: <GitBranch size={10} />, label: 'pr',       left: '12%', top: '92%', rot: -5,  op: 0.3 },
+    { icon: <Github size={16} />,    label: 'repo',     left: '88%', top: '10%', rot: 8,   op: 0.5 },
+    { icon: <GitBranch size={12} />, label: 'merge',    left: '92%', top: '32%', rot: -14, op: 0.45 },
+    { icon: <Star size={14} />,      label: 'fork',     left: '86%', top: '55%', rot: 5,   op: 0.4 },
+    { icon: <GitCommit size={12} />, label: 'tag',      left: '90%', top: '75%', rot: -10, op: 0.35 },
+    { icon: <Github size={10} />,    label: 'origin',   left: '85%', top: '90%', rot: 7,   op: 0.3 },
+    { icon: <Star size={10} />,      label: 'star',     left: '20%', top: '18%', rot: 15,  op: 0.25 },
+    { icon: <GitCommit size={10} />, label: 'sha',      left: '75%', top: '22%', rot: -8,  op: 0.25 },
+  ],
+  zip: [
+    { icon: <Upload size={14} />,      label: 'upload',  left: '3%',  top: '12%', rot: -8,  op: 0.5 },
+    { icon: <LucideFile size={12} />,   label: '.ts',     left: '7%',  top: '35%', rot: 10,  op: 0.4 },
+    { icon: <Package size={14} />,      label: 'pkg',     left: '2%',  top: '58%', rot: -6,  op: 0.45 },
+    { icon: <LucideFile size={12} />,   label: '.jsx',    left: '9%',  top: '78%', rot: 12,  op: 0.35 },
+    { icon: <Upload size={10} />,       label: 'stream',  left: '12%', top: '92%', rot: -4,  op: 0.3 },
+    { icon: <FileArchive size={16} />, label: 'archive', left: '88%', top: '10%', rot: 6,   op: 0.5 },
+    { icon: <LucideFile size={12} />,   label: '.py',     left: '92%', top: '32%', rot: -12, op: 0.45 },
+    { icon: <Package size={14} />,      label: 'bundle',  left: '86%', top: '55%', rot: 8,   op: 0.4 },
+    { icon: <LucideFile size={12} />,   label: '.rs',     left: '90%', top: '75%', rot: -7,  op: 0.35 },
+    { icon: <FileArchive size={10} />, label: 'tar.gz',  left: '85%', top: '90%', rot: 5,   op: 0.3 },
+    { icon: <Package size={10} />,      label: 'npm',     left: '18%', top: '20%', rot: -12, op: 0.25 },
+    { icon: <LucideFile size={10} />,   label: '.go',     left: '78%', top: '20%', rot: 9,   op: 0.25 },
+  ],
+  local: [
+    { icon: <FolderTree size={14} />,  label: 'tree',     left: '3%',  top: '12%', rot: -6,  op: 0.5 },
+    { icon: <HardDrive size={12} />,   label: 'disk',     left: '7%',  top: '35%', rot: 8,   op: 0.4 },
+    { icon: <LucideFile size={14} />,   label: 'src',      left: '2%',  top: '58%', rot: -10, op: 0.45 },
+    { icon: <FolderOpen size={12} />,  label: 'modules',  left: '9%',  top: '78%', rot: 6,   op: 0.35 },
+    { icon: <HardDrive size={10} />,   label: 'ssd',      left: '12%', top: '92%', rot: -4,  op: 0.3 },
+    { icon: <Monitor size={16} />,     label: 'local',    left: '88%', top: '10%', rot: 10,  op: 0.5 },
+    { icon: <FolderOpen size={12} />,  label: 'dir',      left: '92%', top: '32%', rot: -8,  op: 0.45 },
+    { icon: <FolderTree size={14} />,  label: 'node',     left: '86%', top: '55%', rot: 5,   op: 0.4 },
+    { icon: <LucideFile size={12} />,   label: 'config',   left: '90%', top: '75%', rot: -12, op: 0.35 },
+    { icon: <Monitor size={10} />,     label: 'dev',      left: '85%', top: '90%', rot: 7,   op: 0.3 },
+    { icon: <FolderTree size={10} />,  label: 'root',     left: '20%', top: '16%', rot: 12,  op: 0.25 },
+    { icon: <HardDrive size={10} />,   label: 'vol',      left: '76%', top: '22%', rot: -6,  op: 0.25 },
+  ],
+};
 
 export default function AnalysisInputPage({ onAnalysisComplete }: Props) {
   const [tab, setTab] = useState<TabType>('github');
@@ -101,62 +152,13 @@ export default function AnalysisInputPage({ onAnalysisComplete }: Props) {
     }
   };
 
-  const tabs: { key: TabType; label: string; icon: any }[] = [
-    { key: 'github', label: 'GitHub', icon: <Github size={16} /> },
-    { key: 'zip', label: 'Zip Archive', icon: <FileArchive size={16} /> },
-    { key: 'local', label: 'Local Path', icon: <FolderOpen size={16} /> },
-  ];
 
-  const floatingElements: Record<TabType, { icon: any; label: string; left: string; top: string; rot: number; op: number }[]> = {
-    github: [
-      { icon: <GitBranch size={14} />, label: 'branch',   left: '3%',  top: '12%', rot: -10, op: 0.5 },
-      { icon: <Star size={12} />,      label: 'starred',  left: '6%',  top: '35%', rot: 6,   op: 0.4 },
-      { icon: <GitCommit size={14} />, label: 'commit',   left: '2%',  top: '58%', rot: -8,  op: 0.45 },
-      { icon: <Github size={12} />,    label: 'clone',    left: '8%',  top: '78%', rot: 12,  op: 0.35 },
-      { icon: <GitBranch size={10} />, label: 'pr',       left: '12%', top: '92%', rot: -5,  op: 0.3 },
-      { icon: <Github size={16} />,    label: 'repo',     left: '88%', top: '10%', rot: 8,   op: 0.5 },
-      { icon: <GitBranch size={12} />, label: 'merge',    left: '92%', top: '32%', rot: -14, op: 0.45 },
-      { icon: <Star size={14} />,      label: 'fork',     left: '86%', top: '55%', rot: 5,   op: 0.4 },
-      { icon: <GitCommit size={12} />, label: 'tag',      left: '90%', top: '75%', rot: -10, op: 0.35 },
-      { icon: <Github size={10} />,    label: 'origin',   left: '85%', top: '90%', rot: 7,   op: 0.3 },
-      { icon: <Star size={10} />,      label: 'star',     left: '20%', top: '18%', rot: 15,  op: 0.25 },
-      { icon: <GitCommit size={10} />, label: 'sha',      left: '75%', top: '22%', rot: -8,  op: 0.25 },
-    ],
-    zip: [
-      { icon: <Upload size={14} />,      label: 'upload',  left: '3%',  top: '12%', rot: -8,  op: 0.5 },
-      { icon: <File size={12} />,         label: '.ts',     left: '7%',  top: '35%', rot: 10,  op: 0.4 },
-      { icon: <Package size={14} />,      label: 'pkg',     left: '2%',  top: '58%', rot: -6,  op: 0.45 },
-      { icon: <File size={12} />,         label: '.jsx',    left: '9%',  top: '78%', rot: 12,  op: 0.35 },
-      { icon: <Upload size={10} />,       label: 'stream',  left: '12%', top: '92%', rot: -4,  op: 0.3 },
-      { icon: <FileArchive size={16} />, label: 'archive', left: '88%', top: '10%', rot: 6,   op: 0.5 },
-      { icon: <File size={12} />,         label: '.py',     left: '92%', top: '32%', rot: -12, op: 0.45 },
-      { icon: <Package size={14} />,      label: 'bundle',  left: '86%', top: '55%', rot: 8,   op: 0.4 },
-      { icon: <File size={12} />,         label: '.rs',     left: '90%', top: '75%', rot: -7,  op: 0.35 },
-      { icon: <FileArchive size={10} />, label: 'tar.gz',  left: '85%', top: '90%', rot: 5,   op: 0.3 },
-      { icon: <Package size={10} />,      label: 'npm',     left: '18%', top: '20%', rot: -12, op: 0.25 },
-      { icon: <File size={10} />,         label: '.go',     left: '78%', top: '20%', rot: 9,   op: 0.25 },
-    ],
-    local: [
-      { icon: <FolderTree size={14} />,  label: 'tree',     left: '3%',  top: '12%', rot: -6,  op: 0.5 },
-      { icon: <HardDrive size={12} />,   label: 'disk',     left: '7%',  top: '35%', rot: 8,   op: 0.4 },
-      { icon: <File size={14} />,        label: 'src',      left: '2%',  top: '58%', rot: -10, op: 0.45 },
-      { icon: <FolderOpen size={12} />,  label: 'modules',  left: '9%',  top: '78%', rot: 6,   op: 0.35 },
-      { icon: <HardDrive size={10} />,   label: 'ssd',      left: '12%', top: '92%', rot: -4,  op: 0.3 },
-      { icon: <Monitor size={16} />,     label: 'local',    left: '88%', top: '10%', rot: 10,  op: 0.5 },
-      { icon: <FolderOpen size={12} />,  label: 'dir',      left: '92%', top: '32%', rot: -8,  op: 0.45 },
-      { icon: <FolderTree size={14} />,  label: 'node',     left: '86%', top: '55%', rot: 5,   op: 0.4 },
-      { icon: <File size={12} />,        label: 'config',   left: '90%', top: '75%', rot: -12, op: 0.35 },
-      { icon: <Monitor size={10} />,     label: 'dev',      left: '85%', top: '90%', rot: 7,   op: 0.3 },
-      { icon: <FolderTree size={10} />,  label: 'root',     left: '20%', top: '16%', rot: 12,  op: 0.25 },
-      { icon: <HardDrive size={10} />,   label: 'vol',      left: '76%', top: '22%', rot: -6,  op: 0.25 },
-    ],
-  };
 
   return (
     <PageTransition>
       <div style={{ position: 'relative', minHeight: 'calc(100vh - 72px)', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0 }}>
-          {floatingElements[tab].map((el, i) => (
+          {FLOATING_ELEMENTS[tab].map((el, i) => (
             <div
               key={`${tab}-${i}`}
               style={{
@@ -182,7 +184,7 @@ export default function AnalysisInputPage({ onAnalysisComplete }: Props) {
             </div>
 
             <div className="tab-container">
-              {tabs.map((t) => (
+              {TABS.map((t) => (
                 <button
                   key={t.key}
                   onClick={() => setTab(t.key)}
