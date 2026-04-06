@@ -199,70 +199,26 @@ export default function AnalysisInputPage({ onAnalysisComplete }: Props) {
       </div>
 
       {/* Central content */}
-      <div style={{
-        position: 'relative',
-        zIndex: 10,
-        maxWidth: 520,
-        margin: '0 auto',
-        padding: '0 24px',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: 'calc(100vh - 72px)',
-      }}>
+      <div className="analysis-container">
         <div style={{ width: '100%' }}>
           {/* Header */}
-          <div style={{ textAlign: 'center', marginBottom: 36 }}>
-            <h1 style={{
-              fontSize: '2.5rem',
-              fontWeight: 900,
-              letterSpacing: '-0.03em',
-              color: 'var(--text-primary)',
-              marginBottom: 8,
-            }}>
+          <div className="analysis-header">
+            <h1 className="analysis-title">
               Code Intelligence
             </h1>
-            <p style={{
-              fontSize: '0.95rem',
-              color: 'var(--text-secondary)',
-            }}>
+            <p className="analysis-description">
               Choose your ingestion method to begin the audit.
             </p>
           </div>
 
           {/* Tabs */}
-          <div style={{
-            display: 'flex',
-            background: 'var(--bg-secondary)',
-            padding: 4,
-            borderRadius: 14,
-            border: '2px solid var(--border)',
-            marginBottom: 24,
-          }}>
+          <div className="tab-container">
             {tabs.map((t) => (
               <button
                 key={t.key}
                 onClick={() => setTab(t.key)}
                 disabled={loading}
-                style={{
-                  flex: 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 8,
-                  padding: '12px 0',
-                  borderRadius: 10,
-                  fontWeight: 700,
-                  fontSize: '0.85rem',
-                  border: 'none',
-                  cursor: loading ? 'not-allowed' : 'pointer',
-                  transition: 'all 0.2s ease',
-                  fontFamily: 'var(--font-sans)',
-                  background: tab === t.key ? 'var(--accent)' : 'transparent',
-                  color: tab === t.key ? 'var(--bg-primary)' : 'var(--text-muted)',
-                  boxShadow: tab === t.key ? '0 4px 12px rgba(0,0,0,0.2)' : 'none',
-                }}
+                className={`tab-button ${tab === t.key ? 'active' : ''}`}
               >
                 {t.icon} {t.label}
               </button>
@@ -270,68 +226,24 @@ export default function AnalysisInputPage({ onAnalysisComplete }: Props) {
           </div>
 
           {/* Uniform Input Panel — same height for all tabs */}
-          <div style={{
-            background: 'var(--bg-secondary)',
-            border: '2px solid var(--border)',
-            borderRadius: 16,
-            padding: 32,
-            minHeight: 180,
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-          }}>
+          <div className="input-panel">
 
             {/* GitHub Tab */}
             {tab === 'github' && (
               <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '0.75rem',
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.06em',
-                  color: 'var(--text-muted)',
-                  marginBottom: 10,
-                }}>Public Repository URL</label>
+                <label className="input-label">Public Repository URL</label>
                 <input
                   type="text"
                   placeholder="https://github.com/facebook/react"
                   value={repoUrl}
                   onChange={(e) => setRepoUrl(e.target.value)}
                   disabled={loading}
-                  style={{
-                    width: '100%',
-                    background: 'var(--bg-primary)',
-                    border: '2px solid var(--border)',
-                    borderRadius: 10,
-                    padding: '14px 18px',
-                    color: 'var(--text-primary)',
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: '0.9rem',
-                    outline: 'none',
-                    marginBottom: 16,
-                    boxSizing: 'border-box',
-                  }}
+                  className="form-input"
                 />
                 <button
                   onClick={handleGitHub}
                   disabled={loading || !repoUrl}
-                  style={{
-                    width: '100%',
-                    padding: '14px 0',
-                    background: (loading || !repoUrl) ? 'var(--border)' : 'var(--accent)',
-                    color: 'var(--bg-primary)',
-                    border: 'none',
-                    borderRadius: 10,
-                    fontWeight: 800,
-                    fontSize: '0.95rem',
-                    cursor: (loading || !repoUrl) ? 'not-allowed' : 'pointer',
-                    fontFamily: 'var(--font-sans)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 8,
-                  }}
+                  className="submit-button"
                 >
                   {loading ? <Loader2 size={18} className="animate-spin" /> : 'Connect & Analyze'}
                 </button>
@@ -341,34 +253,12 @@ export default function AnalysisInputPage({ onAnalysisComplete }: Props) {
             {/* Zip Tab — unified layout: label + file picker + button */}
             {tab === 'zip' && (
               <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '0.75rem',
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.06em',
-                  color: 'var(--text-muted)',
-                  marginBottom: 10,
-                }}>Source Code Archive (.zip)</label>
+                <label className="input-label">Source Code Archive (.zip)</label>
                 <input type="file" ref={fileInputRef} onChange={handleUpload} hidden accept=".zip" />
                 <div
                   onClick={() => !loading && fileInputRef.current?.click()}
-                  style={{
-                    width: '100%',
-                    background: 'var(--bg-primary)',
-                    border: '2px solid var(--border)',
-                    borderRadius: 10,
-                    padding: '14px 18px',
-                    color: fileName ? 'var(--text-primary)' : 'var(--text-muted)',
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: '0.9rem',
-                    cursor: loading ? 'not-allowed' : 'pointer',
-                    marginBottom: 16,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 10,
-                    boxSizing: 'border-box',
-                  }}
+                  className={`file-picker ${fileName ? 'selected' : ''}`}
+                  style={{ cursor: loading ? 'not-allowed' : 'pointer' }}
                 >
                   <FileArchive size={16} style={{ opacity: 0.5 }} />
                   {fileName || 'Click to select a .zip archive...'}
@@ -376,22 +266,7 @@ export default function AnalysisInputPage({ onAnalysisComplete }: Props) {
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   disabled={loading}
-                  style={{
-                    width: '100%',
-                    padding: '14px 0',
-                    background: loading ? 'var(--border)' : 'var(--accent)',
-                    color: 'var(--bg-primary)',
-                    border: 'none',
-                    borderRadius: 10,
-                    fontWeight: 800,
-                    fontSize: '0.95rem',
-                    cursor: loading ? 'not-allowed' : 'pointer',
-                    fontFamily: 'var(--font-sans)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 8,
-                  }}
+                  className="submit-button"
                 >
                   {loading ? <Loader2 size={18} className="animate-spin" /> : 'Upload & Analyze'}
                 </button>
@@ -401,54 +276,19 @@ export default function AnalysisInputPage({ onAnalysisComplete }: Props) {
             {/* Local Tab */}
             {tab === 'local' && (
               <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '0.75rem',
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.06em',
-                  color: 'var(--text-muted)',
-                  marginBottom: 10,
-                }}>Absolute Filesystem Path</label>
+                <label className="input-label">Absolute Filesystem Path</label>
                 <input
                   type="text"
                   placeholder="D:\Projects\my-app"
                   value={localPath}
                   onChange={(e) => setLocalPath(e.target.value)}
                   disabled={loading}
-                  style={{
-                    width: '100%',
-                    background: 'var(--bg-primary)',
-                    border: '2px solid var(--border)',
-                    borderRadius: 10,
-                    padding: '14px 18px',
-                    color: 'var(--text-primary)',
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: '0.9rem',
-                    outline: 'none',
-                    marginBottom: 16,
-                    boxSizing: 'border-box',
-                  }}
+                  className="form-input"
                 />
                 <button
                   onClick={handleLocal}
                   disabled={loading || !localPath}
-                  style={{
-                    width: '100%',
-                    padding: '14px 0',
-                    background: (loading || !localPath) ? 'var(--border)' : 'var(--accent)',
-                    color: 'var(--bg-primary)',
-                    border: 'none',
-                    borderRadius: 10,
-                    fontWeight: 800,
-                    fontSize: '0.95rem',
-                    cursor: (loading || !localPath) ? 'not-allowed' : 'pointer',
-                    fontFamily: 'var(--font-sans)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 8,
-                  }}
+                  className="submit-button"
                 >
                   {loading ? <Loader2 size={18} className="animate-spin" /> : 'Scan Directory'}
                 </button>
@@ -458,47 +298,19 @@ export default function AnalysisInputPage({ onAnalysisComplete }: Props) {
 
           {/* Loading bar */}
           {loading && (
-            <div style={{ marginTop: 28, textAlign: 'center' }}>
-              <div style={{
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                color: 'var(--accent)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.1em',
-                marginBottom: 12,
-              }}>{status}</div>
-              <div style={{
-                width: '100%',
-                height: 5,
-                background: 'var(--bg-secondary)',
-                borderRadius: 6,
-                overflow: 'hidden',
-                border: '1px solid var(--border)',
-              }}>
-                <div className="animate-progress-bar" style={{
-                  height: '100%',
-                  width: '100%',
-                  background: 'var(--accent)',
-                }}></div>
+            <div className="loading-status">
+              <div className="loading-text">{status}</div>
+              <div className="progress-bar">
+                <div className="progress-fill animate-progress-bar"></div>
               </div>
             </div>
           )}
 
           {/* Error */}
           {error && (
-            <div style={{
-              marginTop: 24,
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: 12,
-              padding: 16,
-              background: 'rgba(239,68,68,0.08)',
-              border: '2px solid rgba(239,68,68,0.2)',
-              borderRadius: 12,
-              color: '#f87171',
-            }}>
+            <div className="error-alert">
               <AlertCircle size={18} style={{ flexShrink: 0, marginTop: 2 }} />
-              <div style={{ fontSize: '0.85rem', fontWeight: 700 }}>{error}</div>
+              <div className="error-text">{error}</div>
             </div>
           )}
         </div>

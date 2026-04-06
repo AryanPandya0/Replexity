@@ -13,11 +13,11 @@ export default function FileDetailPage({ result }: Props) {
 
   if (!result) {
     return (
-      <div className="responsive-container" style={{ paddingTop: 120, paddingBottom: 120, textAlign: 'center' }}>
+      <div className="responsive-container empty-state">
         <Search size={48} style={{ color: 'var(--accent)', margin: '0 auto 16px' }} />
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 900, marginBottom: 8 }}>No Analysis Data</h2>
-        <p style={{ color: 'var(--text-secondary)', marginBottom: 24 }}>Please run an analysis first.</p>
-        <Link to="/analyze" style={{ display: 'inline-block', padding: '12px 32px', background: 'var(--accent)', color: 'var(--bg-primary)', borderRadius: 10, fontWeight: 800, textDecoration: 'none' }}>Start Analysis</Link>
+        <h2 className="empty-title">No Analysis Data</h2>
+        <p className="empty-description">Please run an analysis first.</p>
+        <Link to="/analyze" className="btn btn-primary">Start Analysis</Link>
       </div>
     );
   }
@@ -25,13 +25,13 @@ export default function FileDetailPage({ result }: Props) {
   const file = result.files.find((f) => f.file_path === decodedPath);
   if (!file) {
     return (
-      <div className="responsive-container" style={{ paddingTop: 120, paddingBottom: 120, textAlign: 'center' }}>
+      <div className="responsive-container empty-state">
         <AlertTriangle size={48} style={{ color: '#ef4444', margin: '0 auto 16px' }} />
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 900, marginBottom: 8 }}>File Not Found</h2>
-        <p style={{ color: 'var(--text-secondary)', marginBottom: 8 }}>Could not find metrics for:</p>
-        <code style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--accent)' }}>{decodedPath}</code>
+        <h2 className="empty-title">File Not Found</h2>
+        <p className="empty-description">Could not find metrics for:</p>
+        <code className="font-mono text-sm" style={{ color: 'var(--accent)' }}>{decodedPath}</code>
         <div style={{ marginTop: 24 }}>
-          <Link to="/dashboard" style={{ display: 'inline-block', padding: '12px 32px', background: 'var(--accent)', color: 'var(--bg-primary)', borderRadius: 10, fontWeight: 800, textDecoration: 'none' }}>Back to Dashboard</Link>
+          <Link to="/dashboard" className="btn btn-primary">Back to Dashboard</Link>
         </div>
       </div>
     );
@@ -51,28 +51,20 @@ export default function FileDetailPage({ result }: Props) {
       <div className="responsive-container" style={{ position: 'relative', zIndex: 1, maxWidth: 1100, paddingTop: 32, paddingBottom: 32 }}>
 
       {/* ── Header ── */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 32, paddingBottom: 24, borderBottom: '2px solid var(--border)' }}>
-        <Link to="/dashboard" style={{
-          width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: 'var(--bg-secondary)', border: '2px solid var(--border)', borderRadius: 8,
-          color: 'var(--text-secondary)', textDecoration: 'none',
-        }}>
-          <ChevronLeft size={18} />
+      <div className="file-header">
+        <Link to="/dashboard" className="back-button">
+          <ChevronRight size={18} />
         </Link>
-        <div style={{ flex: 1, overflow: 'hidden' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+        <div className="file-info">
+          <div className="file-meta">
             <Code2 size={14} style={{ color: 'var(--accent)' }} />
             <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{file.language} Module</span>
           </div>
-          <h1 style={{ fontSize: '1.25rem', fontWeight: 900, fontFamily: 'var(--font-mono)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <h1 className="file-path">
             {file.file_path}
           </h1>
         </div>
-        <span style={{
-          display: 'inline-flex', alignItems: 'center', gap: 6,
-          padding: '6px 14px', borderRadius: 8, fontSize: '0.7rem', fontWeight: 700,
-          textTransform: 'uppercase', background: `${riskColor}18`, color: riskColor,
-        }}>
+        <span className="risk-badge" style={{ background: `${riskColor}18`, color: riskColor }}>
           <span style={{ width: 8, height: 8, borderRadius: '50%', background: riskColor }}></span>
           Score: {Math.round(file.risk_score)}
         </span>
@@ -148,20 +140,16 @@ export default function FileDetailPage({ result }: Props) {
 
         {/* Code Smells */}
         <div>
-          <h2 style={{ fontSize: '0.9rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <h2 className="text-sm font-black" style={{ textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
             <Bug size={16} style={{ color: '#ef4444' }} /> Code Smells
           </h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div className="flex flex-col gap-1\.5">
             {file.code_smells.length === 0 && <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', fontStyle: 'italic' }}>No smells detected.</div>}
             {file.code_smells.map((smell, i) => (
-              <div key={i} style={{
-                padding: '14px 16px', background: 'var(--bg-secondary)',
-                borderLeft: '3px solid #ef4444', border: '1px solid var(--border)',
-                borderRadius: '0 8px 8px 0',
-              }}>
-                <div style={{ fontWeight: 700, fontSize: '0.8rem', marginBottom: 4 }}>{smell.issue}</div>
-                {smell.function && <div style={{ fontSize: '0.6rem', fontFamily: 'var(--font-mono)', color: 'var(--accent)', textTransform: 'uppercase', marginBottom: 6 }}>in {smell.function}()</div>}
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>{smell.suggestion}</div>
+              <div key={i} className="smell-card">
+                <div className="card-title">{smell.issue}</div>
+                {smell.function && <div className="card-function">in {smell.function}()</div>}
+                <div className="card-description">{smell.suggestion}</div>
               </div>
             ))}
           </div>
@@ -169,27 +157,18 @@ export default function FileDetailPage({ result }: Props) {
 
         {/* Refactoring */}
         <div>
-          <h2 style={{ fontSize: '0.9rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <h2 className="text-sm font-black" style={{ textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 16 }}>
             Refactoring Suggestions
           </h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div className="flex flex-col gap-1\.5">
             {file.refactor_suggestions.length === 0 && <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', fontStyle: 'italic' }}>No suggestions at this time.</div>}
             {file.refactor_suggestions.map((sug, i) => (
-              <div key={i} style={{
-                padding: '14px 16px', background: 'var(--bg-secondary)',
-                borderLeft: `3px solid ${sug.priority === 'critical' ? '#ef4444' : 'var(--accent)'}`,
-                border: '1px solid var(--border)', borderRadius: '0 8px 8px 0',
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <div style={{ fontWeight: 700, fontSize: '0.8rem' }}>{sug.issue}</div>
-                  <span style={{
-                    fontSize: '0.5rem', fontWeight: 700, padding: '2px 8px', borderRadius: 4,
-                    textTransform: 'uppercase',
-                    background: sug.priority === 'critical' ? 'rgba(239,68,68,0.15)' : 'rgba(210,193,182,0.1)',
-                    color: sug.priority === 'critical' ? '#ef4444' : 'var(--accent)',
-                  }}>{sug.priority}</span>
+              <div key={i} className={`suggestion-card ${sug.priority === 'critical' ? 'critical' : ''}`}>
+                <div className="flex justify-between items-center mb-1">
+                  <div className="card-title">{sug.issue}</div>
+                  <span className={`priority-badge ${sug.priority === 'critical' ? 'critical' : 'normal'}`}>{sug.priority}</span>
                 </div>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>{sug.suggestion}</div>
+                <div className="card-description">{sug.suggestion}</div>
               </div>
             ))}
           </div>
@@ -202,24 +181,18 @@ export default function FileDetailPage({ result }: Props) {
 
 function MetricCard({ label, value, color }: { label: string; value: string | number; color: string }) {
   return (
-    <div style={{
-      background: 'var(--bg-secondary)', border: '2px solid var(--border)',
-      borderRadius: 12, padding: '18px 22px', transition: 'border-color 0.2s',
-    }}>
-      <div style={{ fontSize: '0.55rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>{label}</div>
-      <div style={{ fontSize: '1.6rem', fontWeight: 900, fontFamily: 'var(--font-mono)', color, lineHeight: 1 }}>{value}</div>
+    <div className="metric-card">
+      <div className="metric-label">{label}</div>
+      <div className="metric-value" style={{ color }}>{value}</div>
     </div>
   );
 }
 
 function SmallMetric({ label, value }: { label: string; value: string | number }) {
   return (
-    <div style={{
-      background: 'var(--bg-secondary)', border: '1px solid var(--border)',
-      borderRadius: 8, padding: '12px 16px',
-    }}>
-      <div style={{ fontSize: '0.5rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>{label}</div>
-      <div style={{ fontSize: '0.85rem', fontWeight: 800, fontFamily: 'var(--font-mono)' }}>{value}</div>
+    <div className="metric-small">
+      <div className="metric-label">{label}</div>
+      <div className="metric-value">{value}</div>
     </div>
   );
 }
