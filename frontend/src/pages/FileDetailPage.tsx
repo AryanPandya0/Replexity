@@ -53,7 +53,7 @@ export default function FileDetailPage({ result }: Props) {
       {/* ── Header ── */}
       <div className="file-header">
         <Link to="/dashboard" className="back-button">
-          <ChevronRight size={18} />
+          <ChevronLeft size={18} />
         </Link>
         <div className="file-info">
           <div className="file-meta">
