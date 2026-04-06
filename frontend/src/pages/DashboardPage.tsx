@@ -17,6 +17,7 @@ import { StatCards } from '../components/dashboard/StatCards';
 import { RiskHeatmap } from '../components/dashboard/RiskHeatmap';
 import { FileRankingTable } from '../components/dashboard/FileRankingTable';
 import { FloatingElementsLayer } from '../components/FloatingElements';
+import { DependencyGraph } from '../components/DependencyGraph';
 
 interface Props {
   result: AnalysisResult | null;
@@ -182,6 +183,15 @@ export default function DashboardPage({ result }: Props) {
             <Bar data={couplingData} options={chartOpts} />
           </div>
         </div>
+      </div>
+
+      {/* ── Architectural Dependency Graph ── */}
+      <div style={{ ...cBox, marginBottom: 20 }}>
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: '1rem', fontWeight: 800 }}>Architectural Dependency Graph</div>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>Interactive visualization of cross-module coupling</div>
+        </div>
+        <DependencyGraph data={result.dependency_graph} />
       </div>
 
       {/* ── Row 3: Maintenance Trends | Hotspots ── */}

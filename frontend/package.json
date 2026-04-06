@@ -11,13 +11,16 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@types/d3": "^7.4.3",
     "@types/react-syntax-highlighter": "^15.5.13",
     "axios": "^1.13.6",
     "chart.js": "^4.5.1",
+    "d3": "^7.9.0",
     "lucide-react": "^0.577.0",
     "react": "^19.2.4",
     "react-chartjs-2": "^5.3.1",
     "react-dom": "^19.2.4",
+    "react-force-graph-2d": "^1.29.1",
     "react-router-dom": "^7.13.1",
     "react-syntax-highlighter": "^16.1.1"
   },

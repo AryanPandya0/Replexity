@@ -127,6 +127,20 @@ class ProjectOverview(BaseModel):
     languages: Dict[str, int] = {}
 
 
+class GraphNode(BaseModel):
+    id: str
+    label: str
+    group: str = "file"
+    risk_score: float = 0.0
+
+class GraphEdge(BaseModel):
+    source: str
+    target: str
+
+class DependencyGraph(BaseModel):
+    nodes: List[GraphNode] = []
+    links: List[GraphEdge] = []
+
 class AnalysisResult(BaseModel):
     analysis_id: str
     project_name: str
@@ -135,3 +149,4 @@ class AnalysisResult(BaseModel):
     code_smells: List[CodeSmellResult] = []
     refactor_suggestions: List[RefactorSuggestion] = []
     risk_distribution: Dict[str, int] = {"low": 0, "medium": 0, "high": 0, "critical": 0}
+    dependency_graph: Optional[DependencyGraph] = None

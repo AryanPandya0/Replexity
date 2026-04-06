@@ -75,6 +75,23 @@ export interface ProjectOverview {
   languages: Record<string, number>;
 }
 
+export interface GraphNode {
+  id: string;
+  label: string;
+  group: string;
+  risk_score: number;
+}
+
+export interface GraphEdge {
+  source: string;
+  target: string;
+}
+
+export interface DependencyGraph {
+  nodes: GraphNode[];
+  links: GraphEdge[];
+}
+
 export interface AnalysisResult {
   analysis_id: string;
   project_name: string;
@@ -83,4 +100,5 @@ export interface AnalysisResult {
   code_smells: CodeSmellResult[];
   refactor_suggestions: RefactorSuggestion[];
   risk_distribution: Record<string, number>;
+  dependency_graph: DependencyGraph | null;
 }

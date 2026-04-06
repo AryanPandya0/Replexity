@@ -248,10 +248,12 @@ def _run_analysis(analysis_id: str, repo_root: str, source_files: List[str]) -> 
             print(f"Warning: Failed to analyze {file_path}: {e}")
             continue
 
-    # Calculate Coupling (Ca, Ce, Instability)
-    # Using a more robust mapping: check if imported paths exist in our project
+    # Calculate Coupling (Ca, Ce, Instability) and build Dependency Graph
+    from backend.api.schemas import DependencyGraph, GraphEdge, GraphNode  # type: ignore
+    
     print(f"Analysis Pipeline: Calculating coupling for {len(all_file_metrics)} files...", flush=True)
     project_files = {f.file_path for f in all_file_metrics}
+    links: List[GraphEdge] = []
     
     # Pre-map base names to paths for faster lookup
     base_to_path: Dict[str, str] = {}
@@ -262,25 +264,28 @@ def _run_analysis(analysis_id: str, repo_root: str, source_files: List[str]) -> 
     for f in all_file_metrics:
         imported_names = import_map.get(f.file_path, set())
         for imp in imported_names:
-            # 1. Exact path match
+            target_path: Optional[str] = None
             if imp in project_files and imp != f.file_path:
+                target_path = imp
+            elif imp in base_to_path:
+                potential_target = base_to_path[imp]
+                if potential_target != f.file_path:
+                    target_path = potential_target
+            
+            if target_path:
                 f.coupling_efferent += 1
+                links.append(GraphEdge(source=f.file_path, target=target_path))
                 for target in all_file_metrics:
-                    if target.file_path == imp:
+                    if target.file_path == target_path:
                         target.coupling_afferent += 1
                         break
-                continue
-            
-            # 2. Base name match (e.g. 'utils' -> 'backend/utils.py')
-            if imp in base_to_path:
-                target_path = base_to_path[imp]
-                if target_path != f.file_path:
-                    f.coupling_efferent += 1
-                    for target in all_file_metrics:
-                        if target.file_path == target_path:
-                            target.coupling_afferent += 1
-                            break
-    print(f"Analysis Pipeline: Coupling calculation complete.", flush=True)
+
+    nodes = [
+        GraphNode(id=f.file_path, label=os.path.basename(f.file_path), risk_score=f.risk_score)
+        for f in all_file_metrics
+    ]
+    dep_graph = DependencyGraph(nodes=nodes, links=links)
+    print(f"Analysis Pipeline: Coupling calculation and graph construction complete.", flush=True)
     
     for f in all_file_metrics:
         total_coupling = float(f.coupling_afferent + f.coupling_efferent)
@@ -322,6 +327,7 @@ def _run_analysis(analysis_id: str, repo_root: str, source_files: List[str]) -> 
         code_smells=all_smells,
         refactor_suggestions=all_suggestions,
         risk_distribution=risk_dist,
+        dependency_graph=dep_graph,
     )
 
     _cache_result(analysis_id, result)
