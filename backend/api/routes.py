@@ -34,6 +34,7 @@ from backend.api.schemas import (  # type: ignore
 from collections import OrderedDict
 from fastapi import APIRouter, File, HTTPException, UploadFile, BackgroundTasks  # type: ignore
 from fastapi.responses import StreamingResponse  # type: ignore
+import threading
 import uuid
 from enum import Enum
 from typing import Optional
@@ -56,23 +57,27 @@ class AnalysisTask:
 # In-memory task store
 MAX_TASK_STORE_SIZE = 100
 _task_store: OrderedDict[str, AnalysisTask] = OrderedDict()
+_store_lock = threading.Lock()
 
 def _create_task() -> AnalysisTask:
-    if len(_task_store) >= MAX_TASK_STORE_SIZE:
+    with _store_lock:
+        if len(_task_store) >= MAX_TASK_STORE_SIZE:
         _task_store.popitem(last=False)
-    task_id = str(uuid.uuid4())
-    task = AnalysisTask(task_id)
-    _task_store[task_id] = task
+        task_id = str(uuid.uuid4())
+        task = AnalysisTask(task_id)
+        _task_store[task_id] = task
     return task
 
 # In-memory cache for analysis results (max 20)
 MAX_CACHE_SIZE = 20
 _analysis_cache: OrderedDict[str, AnalysisResult] = OrderedDict()
+_cache_lock = threading.Lock()
 
 def _cache_result(analysis_id: str, result: AnalysisResult):
-    if len(_analysis_cache) >= MAX_CACHE_SIZE:
-        _analysis_cache.popitem(last=False)  # Remove oldest
-    _analysis_cache[analysis_id] = result
+    with _cache_lock:
+        if len(_analysis_cache) >= MAX_CACHE_SIZE:
+            _analysis_cache.popitem(last=False)  # Remove oldest
+        _analysis_cache[analysis_id] = result
 
 
 # ── Core Analysis Pipeline ──────────────────────────────────────
@@ -318,7 +323,8 @@ def _run_analysis(analysis_id: str, repo_root: str, source_files: List[str]) -> 
 @router.post("/analyze/github")
 async def analyze_github(req: GitHubAnalysisRequest, background_tasks: BackgroundTasks):
     task = _create_task()
-    task.status = TaskStatus.PROCESSING
+    with _store_lock:
+        task.status = TaskStatus.PROCESSING
     
     def _background_job():
         from backend.analysis_engine.repo_manager import cleanup  # type: ignore
@@ -333,21 +339,24 @@ async def analyze_github(req: GitHubAnalysisRequest, background_tasks: Backgroun
             
             print(f"Task {task.task_id}: Analyzing {len(files)} files...", flush=True)
             res: AnalysisResult = _run_analysis(analysis_id, repo_root, files)
-            task.result = res
-            task.status = TaskStatus.COMPLETED
+            with _store_lock:
+                task.result = res
+                task.status = TaskStatus.COMPLETED
             print(f"Task {task.task_id}: Completed successfully.", flush=True)
         except Exception as e:
             print(f"Task {task.task_id}: Failed: {e}", flush=True)
             import traceback
             traceback.print_exc()
-            task.status = TaskStatus.FAILED
-            task.error = str(e)
+            with _store_lock:
+                task.status = TaskStatus.FAILED
+                task.error = str(e)
         finally:
             if 'analysis_id' in locals():
                 cleanup(analysis_id)
 
     background_tasks.add_task(_background_job)
-    return {"task_id": task.task_id, "status": task.status}
+    with _store_lock:
+        return {"task_id": task.task_id, "status": task.status}
 
 
 @router.post("/analyze/upload")
@@ -356,7 +365,8 @@ async def analyze_upload(background_tasks: BackgroundTasks, file: UploadFile = F
         raise HTTPException(status_code=400, detail="Please upload a .zip file.")
 
     task = _create_task()
-    task.status = TaskStatus.PROCESSING
+    with _store_lock:
+        task.status = TaskStatus.PROCESSING
 
     # Save the uploaded file inline before responding to the user
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".zip", mode="wb")
@@ -377,13 +387,15 @@ async def analyze_upload(background_tasks: BackgroundTasks, file: UploadFile = F
             
             print(f"Task {task.task_id}: Analyzing {len(files)} files...")
             res: AnalysisResult = _run_analysis(analysis_id, repo_root, files)
-            task.result = res
-            task.status = TaskStatus.COMPLETED
+            with _store_lock:
+                task.result = res
+                task.status = TaskStatus.COMPLETED
             print(f"Task {task.task_id}: Completed successfully.")
         except Exception as e:
             print(f"Task {task.task_id}: Failed: {e}")
-            task.status = TaskStatus.FAILED
-            task.error = str(e)
+            with _store_lock:
+                task.status = TaskStatus.FAILED
+                task.error = str(e)
         finally:
             if os.path.exists(tmp.name):
                 os.unlink(tmp.name)
@@ -391,7 +403,8 @@ async def analyze_upload(background_tasks: BackgroundTasks, file: UploadFile = F
                 cleanup(analysis_id)
 
     background_tasks.add_task(_background_job)
-    return {"task_id": task.task_id, "status": task.status}
+    with _store_lock:
+        return {"task_id": task.task_id, "status": task.status}
 
 
 # ── Local analysis security ─────────────────────────────────────
@@ -428,7 +441,8 @@ async def analyze_local(req: LocalAnalysisRequest, background_tasks: BackgroundT
             )
 
     task = _create_task()
-    task.status = TaskStatus.PROCESSING
+    with _store_lock:
+        task.status = TaskStatus.PROCESSING
 
     def _background_job():
         try:
@@ -442,21 +456,25 @@ async def analyze_local(req: LocalAnalysisRequest, background_tasks: BackgroundT
             
             print(f"Task {task.task_id}: Analyzing {len(files)} files...")
             res: AnalysisResult = _run_analysis(analysis_id, repo_root, files)
-            task.result = res
-            task.status = TaskStatus.COMPLETED
+            with _store_lock:
+                task.result = res
+                task.status = TaskStatus.COMPLETED
             print(f"Task {task.task_id}: Completed successfully.")
         except Exception as e:
             print(f"Task {task.task_id}: Failed: {e}")
-            task.status = TaskStatus.FAILED
-            task.error = str(e)
+            with _store_lock:
+                task.status = TaskStatus.FAILED
+                task.error = str(e)
 
     background_tasks.add_task(_background_job)
-    return {"task_id": task.task_id, "status": task.status}
+    with _store_lock:
+        return {"task_id": task.task_id, "status": task.status}
 
 
 @router.get("/status/{task_id}")
 async def get_task_status(task_id: str):
-    task = _task_store.get(task_id)
+    with _store_lock:
+        task = _task_store.get(task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     
@@ -471,18 +489,19 @@ async def get_task_status(task_id: str):
 @router.get("/results/{analysis_id}", response_model=AnalysisResult)
 async def get_results(analysis_id: str):
     """Retrieve cached analysis results."""
-    if analysis_id not in _analysis_cache:
-        raise HTTPException(status_code=404, detail="Analysis not found. Please run a new analysis.")
-    return _analysis_cache[analysis_id]
+    with _cache_lock:
+        if analysis_id not in _analysis_cache:
+            raise HTTPException(status_code=404, detail="Analysis not found. Please run a new analysis.")
+        return _analysis_cache[analysis_id]
 
 
 @router.get("/results/{analysis_id}/file/{file_path:path}")
 async def get_file_detail(analysis_id: str, file_path: str):
     """Retrieve detailed metrics for a specific file."""
-    if analysis_id not in _analysis_cache:
-        raise HTTPException(status_code=404, detail="Analysis not found.")
-
-    result = _analysis_cache[analysis_id]
+    with _cache_lock:
+        if analysis_id not in _analysis_cache:
+            raise HTTPException(status_code=404, detail="Analysis not found.")
+        result = _analysis_cache[analysis_id]
     for f in result.files:
         if f.file_path == file_path:
             return f
@@ -494,10 +513,10 @@ async def get_file_detail(analysis_id: str, file_path: str):
 @router.get("/export/{analysis_id}/json")
 async def export_json(analysis_id: str):
     """Export analysis results as JSON."""
-    if analysis_id not in _analysis_cache:
-        raise HTTPException(status_code=404, detail="Analysis not found.")
-
-    result = _analysis_cache[analysis_id]
+    with _cache_lock:
+        if analysis_id not in _analysis_cache:
+            raise HTTPException(status_code=404, detail="Analysis not found.")
+        result = _analysis_cache[analysis_id]
     content = result.model_dump_json(indent=2)
     return StreamingResponse(
         io.BytesIO(content.encode()),
@@ -509,10 +528,10 @@ async def export_json(analysis_id: str):
 @router.get("/export/{analysis_id}/csv")
 async def export_csv(analysis_id: str):
     """Export file-level metrics as CSV."""
-    if analysis_id not in _analysis_cache:
-        raise HTTPException(status_code=404, detail="Analysis not found.")
-
-    result = _analysis_cache[analysis_id]
+    with _cache_lock:
+        if analysis_id not in _analysis_cache:
+            raise HTTPException(status_code=404, detail="Analysis not found.")
+        result = _analysis_cache[analysis_id]
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow([
@@ -539,10 +558,10 @@ async def export_csv(analysis_id: str):
 @router.get("/export/{analysis_id}/pdf")
 async def export_pdf(analysis_id: str):
     """Export analysis results as PDF."""
-    if analysis_id not in _analysis_cache:
-        raise HTTPException(status_code=404, detail="Analysis not found.")
-
-    result = _analysis_cache[analysis_id]
+    with _cache_lock:
+        if analysis_id not in _analysis_cache:
+            raise HTTPException(status_code=404, detail="Analysis not found.")
+        result = _analysis_cache[analysis_id]
 
     from fpdf import FPDF  # type: ignore
 
