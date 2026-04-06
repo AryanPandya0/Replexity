@@ -2,6 +2,8 @@ import { useParams, Link } from 'react-router-dom';
 import { ChevronLeft, Code2, Search, AlertTriangle, Bug } from 'lucide-react';
 import type { AnalysisResult } from '../types';
 import { FloatingElementsLayer } from '../components/FloatingElements';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 interface Props {
   result: AnalysisResult | null;
@@ -97,7 +99,7 @@ export default function FileDetailPage({ result }: Props) {
             <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0 }}>
               <thead>
                 <tr>
-                  {['Function', 'Lines', 'Complexity', 'Cognitive', 'Params'].map((h, i) => (
+                  {['Function', 'Lines', 'Complexity', 'Params'].map((h, i) => (
                     <th key={h} style={{
                       textAlign: i === 0 ? 'left' : 'center', padding: '10px 14px',
                       color: 'var(--text-muted)', fontSize: '0.6rem', fontWeight: 700,
@@ -121,9 +123,6 @@ export default function FileDetailPage({ result }: Props) {
                     <td style={{ padding: '10px 14px', borderBottom: '1px solid var(--border)', textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: fn.complexity > 10 ? '#ef4444' : 'inherit', fontWeight: fn.complexity > 10 ? 700 : 400 }}>
                       {fn.complexity}
                     </td>
-                    <td style={{ padding: '10px 14px', borderBottom: '1px solid var(--border)', textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: fn.cognitive_complexity > 15 ? '#ef4444' : 'inherit', fontWeight: fn.cognitive_complexity > 15 ? 700 : 400 }}>
-                      {fn.cognitive_complexity}
-                    </td>
                     <td style={{ padding: '10px 14px', borderBottom: '1px solid var(--border)', textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}>
                       {fn.parameters}
                     </td>
@@ -131,6 +130,35 @@ export default function FileDetailPage({ result }: Props) {
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* ── Code Preview Section ── */}
+      {file.code_content && (
+        <div style={{ ...card, marginBottom: 24, padding: 0, overflow: 'hidden' }}>
+          <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(210,193,182,0.02)' }}>
+            <div>
+              <div style={{ fontSize: '0.9rem', fontWeight: 800 }}>Source Code Analysis</div>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 2 }}>{file.language} Highlighting Active</div>
+            </div>
+          </div>
+          <div style={{ maxHeight: 600, overflowY: 'auto' }}>
+            <SyntaxHighlighter
+              language={file.language.toLowerCase()}
+              style={vscDarkPlus}
+              customStyle={{
+                margin: 0,
+                padding: '24px',
+                background: 'transparent',
+                fontSize: '0.825rem',
+                lineHeight: '1.6',
+              }}
+              showLineNumbers
+              lineNumberStyle={{ color: 'rgba(210,193,182,0.2)', minWidth: '3em', paddingRight: '1em', textAlign: 'right' }}
+            >
+              {file.code_content}
+            </SyntaxHighlighter>
           </div>
         </div>
       )}

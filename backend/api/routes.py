@@ -62,7 +62,7 @@ _store_lock = threading.Lock()
 def _create_task() -> AnalysisTask:
     with _store_lock:
         if len(_task_store) >= MAX_TASK_STORE_SIZE:
-        _task_store.popitem(last=False)
+            _task_store.popitem(last=False)
         task_id = str(uuid.uuid4())
         task = AnalysisTask(task_id)
         _task_store[task_id] = task
@@ -185,7 +185,16 @@ def _run_analysis(analysis_id: str, repo_root: str, source_files: List[str]) -> 
             # 9. Get Code Churn
             churn = get_code_churn(repo_root, file_path)
 
-            # 10. Build file metrics (preliminary, without coupling)
+            # 10. Read code content (limit to first 2MB)
+            code_str: Optional[str] = None
+            try:
+                if os.path.getsize(file_path) < 2 * 1024 * 1024:
+                    with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+                        code_str = f.read()
+            except:
+                pass
+
+            # 11. Build file metrics (preliminary, without coupling)
             file_metric = FileMetrics(
                 file_path=rel_path,
                 language=parse_result.language,
@@ -211,6 +220,7 @@ def _run_analysis(analysis_id: str, repo_root: str, source_files: List[str]) -> 
                 risk_level=risk_level,
                 bug_risk_probability=bug_risk,
                 code_churn=churn,
+                code_content=code_str,
                 functions=func_metrics,
                 code_smells=smell_results,
                 refactor_suggestions=suggestion_results,

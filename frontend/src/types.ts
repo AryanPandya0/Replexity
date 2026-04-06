@@ -58,6 +58,7 @@ export interface FileMetrics {
   instability: number;
   inheritance_depth: number;
   code_churn: number;
+  code_content: string | null;
   functions: FunctionMetrics[];
   code_smells: CodeSmellResult[];
   refactor_suggestions: RefactorSuggestion[];

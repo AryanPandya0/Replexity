@@ -110,6 +110,7 @@ class FileMetrics(BaseModel):
     instability: float = 0.0
     inheritance_depth: int = 0
     code_churn: int = 0
+    code_content: Optional[str] = None
     functions: List[FunctionMetrics] = []
     code_smells: List[CodeSmellResult] = []
     refactor_suggestions: List[RefactorSuggestion] = []
