@@ -19,7 +19,6 @@ import { FileRankingTable } from '../components/dashboard/FileRankingTable';
 import { FloatingElementsLayer } from '../components/FloatingElements';
 import { DependencyGraph } from '../components/DependencyGraph';
 import { Animated } from '../components/Animated';
-import { Files, Zap, ArrowRight, Github, Globe, Terminal, ShieldCheck } from 'lucide-react';
 
 interface Props {
   result: AnalysisResult | null;
