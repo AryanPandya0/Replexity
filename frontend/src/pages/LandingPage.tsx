@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Zap, ArrowRight, Github, Globe, Terminal, ShieldCheck } from 'lucide-react';
 import { FloatingElementsLayer } from '../components/FloatingElements';
+import { Animated } from '../components/Animated';
 
 export default function LandingPage() {
   return (
@@ -22,7 +23,7 @@ export default function LandingPage() {
       <div className="responsive-container" style={{ position: 'relative', zIndex: 1 }}>
         {/* ── Hero Section ── */}
         <section className="hero-section" style={{ minHeight: '85vh', display: 'flex', alignItems: 'center', paddingTop: 40 }}>
-          <div className="hero-text">
+          <Animated className="hero-text">
 
             <h1 className="hero-title">
               Replexity.
@@ -56,9 +57,9 @@ export default function LandingPage() {
                 <div style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Parsing Accuracy</div>
               </div>
             </div>
-          </div>
+          </Animated>
 
-          <div className="hero-visual animate-float">
+          <Animated className="hero-visual" direction="left" delay={0.2}>
             <div className="terminal-card" style={{ boxShadow: '0 40px 100px rgba(0,0,0,0.6)' }}>
               <div className="terminal-titlebar">
                 <div className="terminal-dot terminal-dot-red"></div>
@@ -93,51 +94,59 @@ export default function LandingPage() {
                 <div className="badge-value" style={{ color: '#10b981' }}>Optimized</div>
               </div>
             </div>
-          </div>
+          </Animated>
         </section>
 
         {/* ── Features Section ── */}
         <section style={{ padding: '120px 0', borderTop: '1px solid var(--border)' }}>
-          <div style={{ textAlign: 'center', marginBottom: 80 }}>
+          <Animated style={{ textAlign: 'center', marginBottom: 80 }}>
             <h2 className="text-4xl mb-4">Master Your Codebase.</h2>
             <p style={{ color: 'var(--text-secondary)', maxWidth: 600, margin: '0 auto' }}>
               Advanced heuristics and architectural mapping tools designed for massive monorepos and complex microservice environments.
             </p>
-          </div>
+          </Animated>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 32 }}>
-            <FeatureCard
-              icon={<Terminal size={32} />}
-              title="Agnostic Parsing"
-              desc="Support for TS, JS, Python, and Go with unified complexity metrics across your entire stack."
-            />
-            <FeatureCard
-              icon={<Globe size={32} />}
-              title="Coupling Analysis"
-              desc="Visualize hidden dependencies and structural fragility between distant modules and services."
-            />
-            <FeatureCard
-              icon={<ShieldCheck size={32} />}
-              title="Risk Profiling"
-              desc="Identify files most likely to contain bugs based on churn, complexity, and lint violations."
-            />
+            <Animated delay={0.1}>
+              <FeatureCard
+                icon={<Terminal size={32} />}
+                title="Agnostic Parsing"
+                desc="Support for TS, JS, Python, and Go with unified complexity metrics across your entire stack."
+              />
+            </Animated>
+            <Animated delay={0.2}>
+              <FeatureCard
+                icon={<Globe size={32} />}
+                title="Coupling Analysis"
+                desc="Visualize hidden dependencies and structural fragility between distant modules and services."
+              />
+            </Animated>
+            <Animated delay={0.3}>
+              <FeatureCard
+                icon={<ShieldCheck size={32} />}
+                title="Risk Profiling"
+                desc="Identify files most likely to contain bugs based on churn, complexity, and lint violations."
+              />
+            </Animated>
           </div>
         </section>
 
         {/* ── CTA Section ── */}
-        <section style={{
-          padding: '100px 60px', background: 'linear-gradient(135deg, rgba(35, 76, 106, 0.4), rgba(40, 90, 72, 0.2))',
-          borderRadius: 32, marginBottom: 120, textAlign: 'center', border: '1px solid var(--glass-border)',
-          backdropFilter: 'var(--glass-blur)'
-        }}>
-          <h2 className="text-5xl mb-6">Ready to refactor?</h2>
-          <p className="text-xl mb-10" style={{ color: 'var(--text-secondary)', maxWidth: 600, margin: '0 auto 40px' }}>
-            Get a comprehensive audit of your repository in less than 30 seconds. No manual configuration required.
-          </p>
-          <Link to="/analyze" className="btn btn-primary" style={{ padding: '1.2rem 3rem', fontSize: '1.1rem', borderRadius: 100 }}>
-            Get Started Now <ArrowRight size={22} />
-          </Link>
-        </section>
+        <Animated direction="up" delay={0.1}>
+          <section style={{
+            padding: '100px 60px', background: 'linear-gradient(135deg, rgba(35, 76, 106, 0.4), rgba(40, 90, 72, 0.2))',
+            borderRadius: 32, marginBottom: 120, textAlign: 'center', border: '1px solid var(--glass-border)',
+            backdropFilter: 'var(--glass-blur)'
+          }}>
+            <h2 className="text-5xl mb-6">Ready to refactor?</h2>
+            <p className="text-xl mb-10" style={{ color: 'var(--text-secondary)', maxWidth: 600, margin: '0 auto 40px' }}>
+              Get a comprehensive audit of your repository in less than 30 seconds. No manual configuration required.
+            </p>
+            <Link to="/analyze" className="btn btn-primary" style={{ padding: '1.2rem 3rem', fontSize: '1.1rem', borderRadius: 100 }}>
+              Get Started Now <ArrowRight size={22} />
+            </Link>
+          </section>
+        </Animated>
 
         <footer style={{ paddingBottom: 60, display: 'flex', justifyContent: 'space-between', alignItems: 'center', opacity: 0.5, fontSize: '0.8rem' }}>
           <div>© 2026 Replexity Labs. Alpha Build.</div>

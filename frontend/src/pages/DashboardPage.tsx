@@ -18,6 +18,8 @@ import { RiskHeatmap } from '../components/dashboard/RiskHeatmap';
 import { FileRankingTable } from '../components/dashboard/FileRankingTable';
 import { FloatingElementsLayer } from '../components/FloatingElements';
 import { DependencyGraph } from '../components/DependencyGraph';
+import { Animated } from '../components/Animated';
+import { Files, Zap, ArrowRight, Github, Globe, Terminal, ShieldCheck } from 'lucide-react';
 
 interface Props {
   result: AnalysisResult | null;
@@ -130,9 +132,10 @@ export default function DashboardPage({ result }: Props) {
       <StatCards result={result} />
 
       {/* ── Row 1: Health + Languages | Risk Doughnut ── */}
+      {/* ── Rows for Data ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: 20, marginBottom: 20 }}>
         {/* Health + Languages */}
-        <div style={{ ...cBox, display: 'flex', alignItems: 'center', gap: 40 }}>
+        <Animated style={{ ...cBox, display: 'flex', alignItems: 'center', gap: 40 }}>
           <HealthCircle score={overview.health_score} />
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: '0.6rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>Language Breakdown</div>
@@ -149,10 +152,10 @@ export default function DashboardPage({ result }: Props) {
               </div>
             </div>
           </div>
-        </div>
+        </Animated>
 
         {/* Risk Doughnut */}
-        <div style={cBox}>
+        <Animated style={cBox} delay={0.1}>
           <div style={{ marginBottom: 16 }}>
             <div style={{ fontSize: '1rem', fontWeight: 800 }}>Risk Distribution</div>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>File counts by severity</div>
@@ -160,12 +163,12 @@ export default function DashboardPage({ result }: Props) {
           <div style={{ height: 220 }}>
             <Doughnut data={riskData} options={doughnutOpts} />
           </div>
-        </div>
+        </Animated>
       </div>
 
       {/* ── Row 2: Complexity + Coupling ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: 20, marginBottom: 20 }}>
-        <div style={cBox}>
+        <Animated style={cBox} delay={0.2}>
           <div style={{ marginBottom: 16 }}>
             <div style={{ fontSize: '1rem', fontWeight: 800 }}>Complexity Profile</div>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>Cyclomatic vs Cognitive</div>
@@ -173,8 +176,8 @@ export default function DashboardPage({ result }: Props) {
           <div style={{ height: 260 }}>
             <Bar data={complexityData} options={chartOpts} />
           </div>
-        </div>
-        <div style={cBox}>
+        </Animated>
+        <Animated style={cBox} delay={0.3}>
           <div style={{ marginBottom: 16 }}>
             <div style={{ fontSize: '1rem', fontWeight: 800 }}>Structural Coupling</div>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>Inter-module dependencies</div>
@@ -182,17 +185,17 @@ export default function DashboardPage({ result }: Props) {
           <div style={{ height: 260 }}>
             <Bar data={couplingData} options={chartOpts} />
           </div>
-        </div>
+        </Animated>
       </div>
 
       {/* ── Architectural Dependency Graph ── */}
-      <div style={{ ...cBox, marginBottom: 20 }}>
+      <Animated style={{ ...cBox, marginBottom: 20 }} delay={0.4}>
         <div style={{ marginBottom: 16 }}>
           <div style={{ fontSize: '1rem', fontWeight: 800 }}>Architectural Dependency Graph</div>
           <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>Interactive visualization of cross-module coupling</div>
         </div>
         <DependencyGraph data={result.dependency_graph} />
-      </div>
+      </Animated>
 
       {/* ── Row 3: Maintenance Trends | Hotspots ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: 20, marginBottom: 24 }}>
