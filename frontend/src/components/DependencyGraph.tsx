@@ -150,6 +150,15 @@ export function DependencyGraph({ data }: Props) {
           ctx.globalAlpha = opacity;
           ctx.fill();
           
+          // Technology Indicator (Outer Ring)
+          const techColor = langColors[node.group] || langColors.Default;
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, 8, 0, 2 * Math.PI, false);
+          ctx.strokeStyle = techColor;
+          ctx.lineWidth = 1.5;
+          ctx.globalAlpha = opacity * 0.4;
+          ctx.stroke();
+
           // White Glow effect on node
           ctx.beginPath();
           ctx.arc(node.x, node.y, 3, 0, 2 * Math.PI, false);
