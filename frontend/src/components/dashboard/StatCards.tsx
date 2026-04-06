@@ -15,7 +15,7 @@ export function StatCards({ result }: Props) {
   ];
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 32 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 32 }}>
       {cards.map((c, i) => (
         <div key={i} style={{
           background: 'var(--bg-secondary)',

@@ -21,7 +21,7 @@ interface Props {
 export default function ExportPage({ result }: Props) {
   if (!result) {
     return (
-      <div style={{ maxWidth: 1280, margin: '0 auto', padding: '120px 48px', textAlign: 'center' }}>
+      <div className="responsive-container" style={{ paddingTop: 120, paddingBottom: 120, textAlign: 'center' }}>
         <Search size={48} style={{ color: 'var(--accent)', margin: '0 auto 16px' }} />
         <h2 style={{ fontSize: '1.5rem', fontWeight: 900, marginBottom: 8 }}>No Data to Export</h2>
         <p style={{ color: 'var(--text-secondary)', marginBottom: 24 }}>Run an analysis first to generate reports.</p>
@@ -58,7 +58,7 @@ export default function ExportPage({ result }: Props) {
     <div style={{ position: 'relative', minHeight: 'calc(100vh - 72px)' }}>
       <FloatingElementsLayer variant="export" />
 
-      <div style={{ position: 'relative', zIndex: 1, maxWidth: 960, margin: '0 auto', padding: '48px 48px' }}>
+      <div className="responsive-container" style={{ position: 'relative', zIndex: 1, maxWidth: 960, paddingTop: 48, paddingBottom: 48 }}>
 
         {/* ── Header ── */}
         <div style={{ marginBottom: 40 }}>
@@ -82,7 +82,7 @@ export default function ExportPage({ result }: Props) {
         </div>
 
         {/* ── 3-column Download Cards ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20, marginBottom: 40 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 20, marginBottom: 40 }}>
           {exportCards.map((card) => (
             <div key={card.format} style={{
               background: 'var(--bg-secondary)',

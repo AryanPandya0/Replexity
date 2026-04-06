@@ -37,7 +37,7 @@ export function RiskHeatmap({ files }: Props) {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: 6 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(40px, 1fr))', gap: 6 }}>
         {heatmapFiles.map((file, i) => (
           <div
             key={i}

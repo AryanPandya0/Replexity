@@ -3,7 +3,7 @@ import { Zap, Layers, Search, ChevronRight, Code2 } from 'lucide-react';
 
 export default function LandingPage() {
   return (
-    <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 48px' }}>
+    <div className="responsive-container">
 
       {/* ── Hero Section (Split Layout) ── */}
       <section style={{
@@ -15,7 +15,9 @@ export default function LandingPage() {
         paddingTop: 100,
         paddingBottom: 100,
         minHeight: 'calc(100vh - 72px)',
-      }}>
+      }}
+      className="hero-section"
+      >
         {/* Left: Text */}
         <div style={{ flex: 1, maxWidth: 560 }}>
           <h1 style={{
@@ -210,7 +212,7 @@ export default function LandingPage() {
       }}>
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
           gap: 48,
         }}>
           <FeatureCard

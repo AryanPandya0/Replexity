@@ -26,6 +26,7 @@ export function FileRankingTable({ files }: Props) {
         }}>Risk-Weighted</div>
       </div>
 
+      <div className="table-responsive">
       <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0 }}>
         <thead>
           <tr>
@@ -87,6 +88,7 @@ export function FileRankingTable({ files }: Props) {
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

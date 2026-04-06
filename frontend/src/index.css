@@ -339,6 +339,287 @@ h1, h2, h3, h4, h5, h6 {
 .max-w-6xl { max-width: 72rem; }
 
 /* ── Grid System ── */
+.grid-1 { display: grid; grid-template-columns: 1fr; }
+.grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); }
+.grid-auto-fit { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
+.grid-auto-fill { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
+
+/* ── Responsive Breakpoints ── */
+@media (max-width: 1024px) {
+  :root {
+    --nav-height: 64px;
+    --sidebar-width: 220px;
+  }
+
+  .page-content {
+    padding: calc(var(--grid-unit) * 4);
+    max-width: 100%;
+  }
+
+  .navbar {
+    padding: 0 calc(var(--grid-unit) * 3);
+  }
+
+  .navbar-brand {
+    font-size: 1.2rem;
+  }
+
+  .navbar-links {
+    gap: calc(var(--grid-unit) * 2);
+  }
+
+  .nav-link {
+    font-size: 0.85rem;
+    padding: 6px 10px;
+  }
+
+  /* Grid adjustments for tablet */
+  .grid-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .grid-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Hero section adjustments */
+  .hero-section {
+    flex-direction: column !important;
+    padding-top: 60px !important;
+    padding-bottom: 60px !important;
+    gap: 40px !important;
+  }
+
+  /* Text size adjustments */
+  .text-6xl { font-size: 3rem; }
+  .text-7xl { font-size: 3.5rem; }
+  .text-4xl { font-size: 2rem; }
+  .text-3xl { font-size: 1.625rem; }
+}
+
+@media (max-width: 768px) {
+  :root {
+    --nav-height: 56px;
+  }
+
+  body {
+    font-size: 14px;
+  }
+
+  .page-content {
+    padding: calc(var(--grid-unit) * 2);
+  }
+
+  .navbar {
+    padding: 0 calc(var(--grid-unit) * 2);
+  }
+
+  .navbar-brand {
+    font-size: 1rem;
+    gap: 8px;
+  }
+
+  .navbar-links {
+    gap: calc(var(--grid-unit));
+  }
+
+  .nav-link {
+    font-size: 0.75rem;
+    padding: 4px 8px;
+  }
+
+  /* Hide nav link text on mobile, show icons only */
+  .nav-link span {
+    display: none;
+  }
+
+  /* Grid adjustments for mobile */
+  .grid-4,
+  .grid-3,
+  .grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  /* Hero section mobile */
+  .hero-section {
+    padding-top: 40px !important;
+    padding-bottom: 40px !important;
+    gap: 32px !important;
+    min-height: auto !important;
+  }
+
+  /* Button adjustments */
+  .btn {
+    padding: 0.625rem 1.25rem;
+    font-size: 0.875rem;
+  }
+
+  .btn-sm {
+    padding: 0.4rem 0.875rem;
+    font-size: 0.75rem;
+  }
+
+  /* Card adjustments */
+  .card {
+    padding: calc(var(--grid-unit) * 2);
+  }
+
+  .chart-container {
+    padding: calc(var(--grid-unit) * 2);
+  }
+
+  /* Text size adjustments */
+  .text-6xl { font-size: 2.25rem; }
+  .text-7xl { font-size: 2.75rem; }
+  .text-4xl { font-size: 1.75rem; }
+  .text-3xl { font-size: 1.5rem; }
+  .text-2xl { font-size: 1.25rem; }
+  .text-xl { font-size: 1.125rem; }
+
+  /* Spacing adjustments */
+  .mb-20 { margin-bottom: 80px; }
+  .mb-16 { margin-bottom: 64px; }
+  .mb-12 { margin-bottom: 48px; }
+  .mb-10 { margin-bottom: 40px; }
+  .mb-8 { margin-bottom: 32px; }
+
+  .py-20 { padding-top: 80px; padding-bottom: 80px; }
+  .px-10 { padding-left: 24px; padding-right: 24px; }
+  .p-10 { padding: 40px; }
+  .p-8 { padding: 32px; }
+  .p-6 { padding: 24px; }
+
+  /* Table adjustments */
+  .data-table {
+    font-size: 0.75rem;
+  }
+
+  .data-table th {
+    padding: 8px 10px;
+    font-size: 0.65rem;
+  }
+
+  .data-table td {
+    padding: 10px;
+    font-size: 0.75rem;
+  }
+
+  /* Responsive container widths */
+  div[style*="maxWidth: 1280px"],
+  div[style*="maxWidth: 1100px"],
+  div[style*="maxWidth: 960px"] {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .navbar-brand {
+    font-size: 0.9rem;
+  }
+
+  .page-content {
+    padding: calc(var(--grid-unit));
+  }
+
+  .text-6xl { font-size: 1.875rem; }
+  .text-7xl { font-size: 2.25rem; }
+  .text-4xl { font-size: 1.5rem; }
+
+  /* Extra small adjustments */
+  .gap-8 { gap: 32px; }
+  .gap-6 { gap: 24px; }
+  .gap-4 { gap: 16px; }
+}
+
+/* ── Responsive Utility Classes ── */
+.responsive-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 48px;
+}
+
+@media (max-width: 1024px) {
+  .responsive-container {
+    padding: 0 32px;
+  }
+}
+
+@media (max-width: 768px) {
+  .responsive-container {
+    padding: 0 24px;
+  }
+}
+
+@media (max-width: 480px) {
+  .responsive-container {
+    padding: 0 16px;
+  }
+}
+
+/* ── Responsive Flex Utilities ── */
+.flex-responsive {
+  display: flex;
+}
+
+@media (max-width: 768px) {
+  .flex-responsive {
+    flex-direction: column;
+  }
+}
+
+/* ── Hide/Show Utilities ── */
+.hide-mobile {
+  display: block;
+}
+
+@media (max-width: 768px) {
+  .hide-mobile {
+    display: none;
+  }
+
+  /* Hide floating decorative elements on mobile for cleaner UI */
+  div[style*="floatingElements"] > div {
+    display: none !important;
+  }
+}
+
+.show-mobile {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .show-mobile {
+    display: block;
+  }
+}
+
+/* ── Form Input Responsive ── */
+@media (max-width: 768px) {
+  input[type="text"],
+  input[type="email"],
+  input[type="url"],
+  textarea,
+  select {
+    font-size: 16px !important; /* Prevents zoom on iOS */
+  }
+
+  /* Chart containers responsive height */
+  div[style*="height: 220"],
+  div[style*="height: 240"],
+  div[style*="height: 260"] {
+    height: 200px !important;
+  }
+
+  /* Responsive flex layouts */
+  div[style*="display: flex"][style*="gap: 40"] {
+    flex-direction: column !important;
+    gap: 24px !important;
+  }
+}
+
 /* ── Data Tables ── */
 .data-table {
   width: 100%;
@@ -364,6 +645,19 @@ h1, h2, h3, h4, h5, h6 {
 
 .data-table tr:hover td {
   background: rgba(210, 193, 182, 0.02);
+}
+
+/* Table wrapper for horizontal scroll on mobile */
+.table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 768px) {
+  .table-responsive {
+    margin: 0 -16px;
+    padding: 0 16px;
+  }
 }
 
 /* ── Badges ── */

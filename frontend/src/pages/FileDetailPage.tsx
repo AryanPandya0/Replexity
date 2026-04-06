@@ -13,7 +13,7 @@ export default function FileDetailPage({ result }: Props) {
 
   if (!result) {
     return (
-      <div style={{ maxWidth: 1280, margin: '0 auto', padding: '120px 48px', textAlign: 'center' }}>
+      <div className="responsive-container" style={{ paddingTop: 120, paddingBottom: 120, textAlign: 'center' }}>
         <Search size={48} style={{ color: 'var(--accent)', margin: '0 auto 16px' }} />
         <h2 style={{ fontSize: '1.5rem', fontWeight: 900, marginBottom: 8 }}>No Analysis Data</h2>
         <p style={{ color: 'var(--text-secondary)', marginBottom: 24 }}>Please run an analysis first.</p>
@@ -25,7 +25,7 @@ export default function FileDetailPage({ result }: Props) {
   const file = result.files.find((f) => f.file_path === decodedPath);
   if (!file) {
     return (
-      <div style={{ maxWidth: 1280, margin: '0 auto', padding: '120px 48px', textAlign: 'center' }}>
+      <div className="responsive-container" style={{ paddingTop: 120, paddingBottom: 120, textAlign: 'center' }}>
         <AlertTriangle size={48} style={{ color: '#ef4444', margin: '0 auto 16px' }} />
         <h2 style={{ fontSize: '1.5rem', fontWeight: 900, marginBottom: 8 }}>File Not Found</h2>
         <p style={{ color: 'var(--text-secondary)', marginBottom: 8 }}>Could not find metrics for:</p>
@@ -48,7 +48,7 @@ export default function FileDetailPage({ result }: Props) {
   return (
     <div style={{ position: 'relative', minHeight: '100vh' }}>
       <FloatingElementsLayer variant="filedetail" />
-      <div style={{ position: 'relative', zIndex: 1, maxWidth: 1100, margin: '0 auto', padding: '32px 48px' }}>
+      <div className="responsive-container" style={{ position: 'relative', zIndex: 1, maxWidth: 1100, paddingTop: 32, paddingBottom: 32 }}>
 
       {/* ── Header ── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 32, paddingBottom: 24, borderBottom: '2px solid var(--border)' }}>
@@ -79,7 +79,7 @@ export default function FileDetailPage({ result }: Props) {
       </div>
 
       {/* ── Primary Metrics (4-col) ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14, marginBottom: 14 }}>
         <MetricCard label="Complexity Index" value={file.cyclomatic_complexity} color={file.cyclomatic_complexity > 15 ? '#ef4444' : '#D2C1B6'} />
         <MetricCard label="Cognitive Load" value={file.cognitive_complexity} color={file.cognitive_complexity > 20 ? '#f59e0b' : '#D2C1B6'} />
         <MetricCard label="Maintainability" value={`${file.maintainability_index}%`} color={file.maintainability_index >= 60 ? '#10b981' : '#f59e0b'} />
@@ -87,7 +87,7 @@ export default function FileDetailPage({ result }: Props) {
       </div>
 
       {/* ── Secondary Metrics (4-col small) ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 32 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 14, marginBottom: 32 }}>
         <SmallMetric label="Total LOC" value={file.loc} />
         <SmallMetric label="Code Churn" value={file.code_churn} />
         <SmallMetric label="Instability" value={file.instability.toFixed(2)} />
@@ -101,7 +101,7 @@ export default function FileDetailPage({ result }: Props) {
             <div style={{ fontSize: '1rem', fontWeight: 800 }}>Functional Breakdown</div>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>{file.functions.length} function definitions</div>
           </div>
-          <div style={{ overflowX: 'auto' }}>
+          <div className="table-responsive">
             <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0 }}>
               <thead>
                 <tr>
@@ -144,7 +144,7 @@ export default function FileDetailPage({ result }: Props) {
       )}
 
       {/* ── Code Smells & Refactoring (2-col) ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 20 }}>
 
         {/* Code Smells */}
         <div>

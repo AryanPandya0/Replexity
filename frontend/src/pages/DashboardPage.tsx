@@ -25,7 +25,7 @@ interface Props {
 export default function DashboardPage({ result }: Props) {
   if (!result) {
     return (
-      <div style={{ maxWidth: 1280, margin: '0 auto', padding: '120px 48px', textAlign: 'center' }}>
+      <div className="responsive-container" style={{ paddingTop: 120, paddingBottom: 120, textAlign: 'center' }}>
         <div style={{ fontSize: '3rem', marginBottom: 16 }}>📊</div>
         <h2 style={{ fontSize: '1.5rem', fontWeight: 900, marginBottom: 8 }}>No Analysis Data</h2>
         <p style={{ color: 'var(--text-secondary)', marginBottom: 24 }}>Run an analysis first to see your dashboard</p>
@@ -41,7 +41,7 @@ export default function DashboardPage({ result }: Props) {
 
   if (files.length === 0) {
     return (
-      <div style={{ maxWidth: 1280, margin: '0 auto', padding: '120px 48px', textAlign: 'center' }}>
+      <div className="responsive-container" style={{ paddingTop: 120, paddingBottom: 120, textAlign: 'center' }}>
         <h2 style={{ fontSize: '1.5rem', fontWeight: 900, marginBottom: 8 }}>No Files Found</h2>
         <p style={{ color: 'var(--text-secondary)', marginBottom: 24 }}>The analysis completed but no source files were detected.</p>
         <Link to="/analyze" style={{ display: 'inline-block', padding: '12px 32px', background: 'var(--accent)', color: 'var(--bg-primary)', borderRadius: 10, fontWeight: 800, textDecoration: 'none' }}>Try Another Path</Link>
@@ -109,7 +109,7 @@ export default function DashboardPage({ result }: Props) {
   return (
     <div style={{ position: 'relative', minHeight: '100vh' }}>
       <FloatingElementsLayer variant="dashboard" />
-      <div style={{ position: 'relative', zIndex: 1, maxWidth: 1280, margin: '0 auto', padding: '32px 48px' }}>
+      <div className="responsive-container" style={{ position: 'relative', zIndex: 1, paddingTop: 32, paddingBottom: 32 }}>
 
       {/* ── Header ── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
@@ -129,7 +129,7 @@ export default function DashboardPage({ result }: Props) {
       <StatCards result={result} />
 
       {/* ── Row 1: Health + Languages | Risk Doughnut ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: 20, marginBottom: 20 }}>
         {/* Health + Languages */}
         <div style={{ ...cBox, display: 'flex', alignItems: 'center', gap: 40 }}>
           <HealthCircle score={overview.health_score} />
@@ -163,7 +163,7 @@ export default function DashboardPage({ result }: Props) {
       </div>
 
       {/* ── Row 2: Complexity + Coupling ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: 20, marginBottom: 20 }}>
         <div style={cBox}>
           <div style={{ marginBottom: 16 }}>
             <div style={{ fontSize: '1rem', fontWeight: 800 }}>Complexity Profile</div>
@@ -185,7 +185,7 @@ export default function DashboardPage({ result }: Props) {
       </div>
 
       {/* ── Row 3: Maintenance Trends | Hotspots ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 20, marginBottom: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: 20, marginBottom: 24 }}>
         <div style={cBox}>
           <div style={{ marginBottom: 16 }}>
             <div style={{ fontSize: '1rem', fontWeight: 800 }}>Maintenance Trends</div>
