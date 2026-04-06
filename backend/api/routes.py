@@ -281,7 +281,12 @@ def _run_analysis(analysis_id: str, repo_root: str, source_files: List[str]) -> 
                         break
 
     nodes = [
-        GraphNode(id=f.file_path, label=os.path.basename(f.file_path), risk_score=f.risk_score)
+        GraphNode(
+            id=f.file_path, 
+            label=os.path.basename(f.file_path), 
+            group=f.language,
+            risk_score=f.risk_score
+        )
         for f in all_file_metrics
     ]
     dep_graph = DependencyGraph(nodes=nodes, links=links)

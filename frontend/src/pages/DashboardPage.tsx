@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Chart as ChartJS,
@@ -155,17 +156,36 @@ export default function DashboardPage({ result }: Props) {
         <Animated style={{ ...cBox, display: 'flex', alignItems: 'center', gap: 40 }}>
           <HealthCircle score={overview.health_score} />
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: '0.6rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>Language Breakdown</div>
-            {Object.entries(overview.languages).map(([lang, count]) => (
-              <div key={lang} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 0', borderBottom: '1px solid rgba(69,104,130,0.15)' }}>
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{lang}</span>
-                <span style={{ fontWeight: 800, fontSize: '0.75rem' }}>{count}</span>
-              </div>
-            ))}
-            <div style={{ marginTop: 16, paddingTop: 12, borderTop: '2px solid var(--border)' }}>
-              <div style={{ fontSize: '0.6rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>Avg Maintainability</div>
-              <div style={{ fontSize: '1.75rem', fontWeight: 900, color: overview.avg_maintainability >= 60 ? '#10b981' : '#f59e0b' }}>
-                {overview.avg_maintainability}
+            <div style={{ fontSize: '0.6rem', fontWeight: 900, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 16 }}>Repo Portfolio</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {Object.entries(overview.languages).map(([lang, count]) => {
+                const percentage = Math.round((count / overview.total_files) * 100);
+                return (
+                  <div key={lang}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#D2C1B6' }}>{lang}</span>
+                      <span style={{ fontSize: '0.65rem', fontWeight: 600, color: 'var(--text-muted)' }}>{percentage}%</span>
+                    </div>
+                    <div style={{ width: '100%', height: 4, background: 'rgba(210, 193, 182, 0.05)', borderRadius: 2 }}>
+                      <motion.div 
+                        initial={{ width: 0 }}
+                        animate={{ width: `${percentage}%` }}
+                        transition={{ duration: 1.2, ease: 'easeOut' }}
+                        style={{ height: '100%', background: 'var(--accent)', borderRadius: 2, boxShadow: `0 0 10px var(--accent)33` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div style={{ marginTop: 24, padding: '16px 20px', background: 'rgba(210,193,182,0.03)', borderRadius: 12, border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: '0.6rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 6 }}>Avg Maintainability</div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                <span style={{ fontSize: '1.75rem', fontWeight: 900, color: overview.avg_maintainability >= 60 ? '#10b981' : '#f59e0b' }}>
+                  {Math.round(overview.avg_maintainability)}
+                </span>
+                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'rgba(210,193,182,0.4)' }}>/ 100</span>
               </div>
             </div>
           </div>
