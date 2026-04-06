@@ -5,6 +5,7 @@ import AnalysisInputPage from './pages/AnalysisInputPage';
 import DashboardPage from './pages/DashboardPage';
 import FileDetailPage from './pages/FileDetailPage';
 import ExportPage from './pages/ExportPage';
+import ComparisonPage from './pages/ComparisonPage';
 import { Terminal, BarChart3, Download, Home, Zap } from 'lucide-react';
 import type { AnalysisResult } from './types';
 import './index.css';
@@ -56,6 +57,7 @@ function AppContent() {
         <Route path="/analyze" element={<AnalysisInputPage onAnalysisComplete={handleAnalysisComplete} />} />
         <Route path="/dashboard" element={<DashboardPage result={result} />} />
         <Route path="/file/:filePath" element={<FileDetailPage result={result} />} />
+        <Route path="/compare" element={<ComparisonPage result={result} />} />
         <Route path="/export" element={<ExportPage result={result} />} />
       </Routes>
     </div>

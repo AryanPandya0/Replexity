@@ -1,4 +1,5 @@
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Chart as ChartJS,
   CategoryScale, LinearScale, BarElement, ArcElement,
@@ -19,12 +20,16 @@ import { FileRankingTable } from '../components/dashboard/FileRankingTable';
 import { FloatingElementsLayer } from '../components/FloatingElements';
 import { DependencyGraph } from '../components/DependencyGraph';
 import { Animated } from '../components/Animated';
+import { Layers, ArrowLeftRight } from 'lucide-react';
 
 interface Props {
   result: AnalysisResult | null;
 }
 
 export default function DashboardPage({ result }: Props) {
+  const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
+  const navigate = useNavigate();
+
   if (!result) {
     return (
       <div className="responsive-container" style={{ paddingTop: 120, paddingBottom: 120, textAlign: 'center' }}>
@@ -37,6 +42,19 @@ export default function DashboardPage({ result }: Props) {
   }
 
   const files = result.files || [];
+
+  const toggleFileSelection = (filePath: string) => {
+    setSelectedFiles(prev => 
+      prev.includes(filePath) ? prev.filter(f => f !== filePath) : [...prev, filePath]
+    );
+  };
+
+  const handleCompare = () => {
+    if (selectedFiles.length < 2) return;
+    const params = new URLSearchParams();
+    selectedFiles.forEach(f => params.append('files', f));
+    navigate(`/compare?${params.toString()}`);
+  };
   const overview = result.overview || { health_score: 0, languages: {}, avg_maintainability: 0 };
   const risk_distribution = result.risk_distribution || { low: 0, medium: 0, high: 0, critical: 0 };
   const topFiles = files.slice(0, 15);
@@ -224,7 +242,53 @@ export default function DashboardPage({ result }: Props) {
       <RiskHeatmap files={files} />
 
       {/* ── File Ranking Table ── */}
-      <FileRankingTable files={files} />
+      <FileRankingTable 
+        files={files} 
+        selectedFiles={selectedFiles} 
+        onToggle={toggleFileSelection} 
+      />
+
+      {/* ── Comparison FAB ── */}
+      {selectedFiles.length > 0 && (
+        <Animated 
+          style={{
+            position: 'fixed',
+            bottom: 32,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: 'var(--bg-secondary)',
+            border: '2px solid var(--accent)',
+            borderRadius: 50,
+            padding: '12px 24px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 16,
+            boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
+            zIndex: 100,
+          }}
+          direction="up"
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Layers size={18} style={{ color: 'var(--accent)' }} />
+            <span style={{ fontSize: '0.85rem', fontWeight: 800 }}>{selectedFiles.length} modules selected</span>
+          </div>
+          <div style={{ width: 1, height: 24, background: 'var(--border)' }}></div>
+          <button
+            onClick={handleCompare}
+            disabled={selectedFiles.length < 2}
+            className="btn btn-primary"
+            style={{ 
+              padding: '8px 16px', 
+              fontSize: '0.75rem', 
+              opacity: selectedFiles.length < 2 ? 0.5 : 1,
+              cursor: selectedFiles.length < 2 ? 'not-allowed' : 'pointer'
+            }}
+          >
+            <ArrowLeftRight size={14} style={{ marginRight: 8 }} />
+            Compare Now
+          </button>
+        </Animated>
+      )}
       </div>
     </div>
   );

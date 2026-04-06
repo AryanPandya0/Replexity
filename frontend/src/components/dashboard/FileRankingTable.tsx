@@ -4,9 +4,11 @@ import type { FileMetrics } from '../../types';
 
 interface Props {
   files: FileMetrics[];
+  selectedFiles: string[];
+  onToggle: (filePath: string) => void;
 }
 
-export function FileRankingTable({ files }: Props) {
+export function FileRankingTable({ files, selectedFiles, onToggle }: Props) {
   const sortedFiles = [...files].sort((a, b) => b.risk_score - a.risk_score).slice(0, 10);
 
   return (
@@ -30,6 +32,7 @@ export function FileRankingTable({ files }: Props) {
       <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0 }}>
         <thead>
           <tr>
+            <th style={{ width: 40, borderBottom: '2px solid var(--border)' }}></th>
             {['File', 'Complexity', 'Integrity', 'Risk', ''].map((h, i) => (
               <th key={i} style={{
                 textAlign: i === 0 ? 'left' : i === 4 ? 'right' : 'center',
@@ -41,51 +44,70 @@ export function FileRankingTable({ files }: Props) {
           </tr>
         </thead>
         <tbody>
-          {sortedFiles.map((file) => (
-            <tr key={file.file_path} style={{ transition: 'background 0.15s' }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(210,193,182,0.02)'; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
-            >
-              <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', maxWidth: 300 }}>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', fontWeight: 900, color: 'var(--accent)', marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {file.file_path.split(/[/\\]/).pop()}
-                </div>
-                <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', opacity: 0.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {file.file_path}
-                </div>
-              </td>
-              <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: '0.85rem' }}>
-                {file.cyclomatic_complexity}
-              </td>
-              <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: '0.85rem' }}>
-                {file.maintainability_index}%
-              </td>
-              <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', textAlign: 'center' }}>
-                <span style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 5,
-                  padding: '3px 10px', borderRadius: 6, fontSize: '0.7rem', fontWeight: 700,
-                  textTransform: 'uppercase',
-                  background: getRiskBg(file.risk_score), color: getRiskColor(file.risk_score),
-                }}>
-                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: getRiskColor(file.risk_score) }}></span>
-                  {Math.round(file.risk_score)}
-                </span>
-              </td>
-              <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', textAlign: 'right' }}>
-                <Link to={`/file/${encodeURIComponent(file.file_path)}`}
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                    width: 28, height: 28, borderRadius: 6, color: 'var(--text-muted)',
-                    transition: 'all 0.15s', textDecoration: 'none',
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.color = 'var(--bg-primary)'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)'; }}
-                >
-                  <ChevronRight size={14} />
-                </Link>
-              </td>
-            </tr>
-          ))}
+          {sortedFiles.map((file) => {
+            const isSelected = selectedFiles.includes(file.file_path);
+            return (
+              <tr key={file.file_path} style={{ 
+                transition: 'background 0.15s',
+                background: isSelected ? 'rgba(210,193,182,0.04)' : 'transparent'
+              }}
+                onMouseEnter={(e) => { if(!isSelected) (e.currentTarget as HTMLElement).style.background = 'rgba(210,193,182,0.02)'; }}
+                onMouseLeave={(e) => { if(!isSelected) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+              >
+                <td style={{ padding: '14px 0 14px 16px', borderBottom: '1px solid var(--border)', verticalAlign: 'middle' }}>
+                  <div 
+                    onClick={() => onToggle(file.file_path)}
+                    style={{
+                      width: 18, height: 18, borderRadius: 4, border: `2px solid ${isSelected ? 'var(--accent)' : 'var(--border)'}`,
+                      background: isSelected ? 'var(--accent)' : 'transparent',
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    {isSelected && <div style={{ width: 8, height: 8, borderRadius: 1, background: 'var(--bg-primary)' }} />}
+                  </div>
+                </td>
+                <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', maxWidth: 300 }}>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', fontWeight: 900, color: 'var(--accent)', marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {file.file_path.split(/[/\\]/).pop()}
+                  </div>
+                  <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', opacity: 0.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {file.file_path}
+                  </div>
+                </td>
+                <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: '0.85rem' }}>
+                  {file.cyclomatic_complexity}
+                </td>
+                <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: '0.85rem' }}>
+                  {Math.round(file.maintainability_index)}%
+                </td>
+                <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', textAlign: 'center' }}>
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 5,
+                    padding: '3px 10px', borderRadius: 6, fontSize: '0.7rem', fontWeight: 700,
+                    textTransform: 'uppercase',
+                    background: getRiskBg(file.risk_score), color: getRiskColor(file.risk_score),
+                  }}>
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: getRiskColor(file.risk_score) }}></span>
+                    {Math.round(file.risk_score)}
+                  </span>
+                </td>
+                <td style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', textAlign: 'right' }}>
+                  <Link to={`/file/${encodeURIComponent(file.file_path)}`}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                      width: 28, height: 28, borderRadius: 6, color: 'var(--text-muted)',
+                      transition: 'all 0.15s', textDecoration: 'none',
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.color = 'var(--bg-primary)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+                  >
+                    <ChevronRight size={14} />
+                  </Link>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
       </div>
