@@ -1,6 +1,6 @@
 import React from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ChevronLeft, Code2, Search, AlertTriangle, Bug, Zap } from 'lucide-react';
+import { useParams, Link } from 'react-router-dom';
+import { ChevronLeft, Code2, Search, AlertTriangle, Bug } from 'lucide-react';
 import type { AnalysisResult } from '../types';
 import { FloatingElementsLayer } from '../components/FloatingElements';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
@@ -13,7 +13,6 @@ interface Props {
 
 export default function FileDetailPage({ result }: Props) {
   const { '*': filePath } = useParams();
-  const navigate = useNavigate();
   const decodedPath = decodeURIComponent(filePath || '');
 
   if (!result) {
