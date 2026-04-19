@@ -264,9 +264,12 @@ def detect_clones(
             for j in range(i + 1, len(locations)):
                 fa, la = locations[i]
                 fb, lb = locations[j]
-                # Skip exact same location
-                if fa == fb and la == lb:
-                    continue
+                
+                if fa == fb:
+                    # Skip exact same location OR overlapping locations in same file
+                    if abs(la - lb) < window:
+                        continue
+                
                 raw_pairs.append((fa, la, fb, lb))
 
     # 4. Merge adjacent matches into contiguous clone regions

@@ -13,42 +13,15 @@ except ImportError:
     pass
 
 try:
-    from .code_parser import ParseResult, FunctionInfo  # type: ignore
+    from .code_parser import ParseResult, FunctionInfo, calculate_halstead_metrics  # type: ignore
 except (ImportError, ValueError):
     try:
-        from backend.analysis_engine.code_parser import ParseResult, FunctionInfo  # type: ignore
+        from backend.analysis_engine.code_parser import ParseResult, FunctionInfo, calculate_halstead_metrics  # type: ignore
     except ImportError:
         # Final fallback if both fail
         pass
 
 
-def calculate_halstead_metrics(operators: List[str], operands: List[str]) -> Tuple[float, float, float]:
-    """
-    Calculate Halstead Metrics:
-    n1 = distinct operators, n2 = distinct operands
-    N1 = total operators, N2 = total operands
-    Vocabulary n = n1 + n2
-    Length N = N1 + N2
-    Volume V = N * log2(n)
-    Difficulty D = (n1 / 2) * (N2 / n2)
-    Effort E = D * V
-    """
-    n1 = len(set(operators))
-    n2 = len(set(operands))
-    N1 = len(operators)
-    N2 = len(operands)
-
-    if n1 == 0 or n2 == 0:
-        return 0.0, 0.0, 0.0
-
-    vocabulary = n1 + n2
-    length = N1 + N2
-    
-    volume = length * math.log2(vocabulary) if vocabulary > 0 else 0.0
-    difficulty = (n1 / 2.0) * (N2 / float(n2))
-    effort = difficulty * volume
-    
-    return volume, difficulty, effort
 
 
 def _safe_maintainability_index(halstead_volume: float, cc: float, loc: int) -> float:

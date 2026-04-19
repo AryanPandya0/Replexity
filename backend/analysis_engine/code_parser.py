@@ -4,6 +4,7 @@ Extracts functions, classes, nesting depth, branches, loops, and imports with
 industrial-grade accuracy.
 """
 import os
+import math
 from dataclasses import dataclass, field
 from typing import Dict, List, Set, Tuple, Optional
 
@@ -24,6 +25,9 @@ class FunctionInfo:
     cognitive_complexity: int = 0
     operators: List[str] = field(default_factory=list)
     operands: List[str] = field(default_factory=list)
+    halstead_volume: float = 0.0
+    halstead_difficulty: float = 0.0
+    halstead_effort: float = 0.0
 
 @dataclass
 class ParseResult:
@@ -41,6 +45,35 @@ class ParseResult:
     inheritance_depth: int = 0
     imports: Set[str] = field(default_factory=set)
     functions: List[FunctionInfo] = field(default_factory=list)
+
+
+def calculate_halstead_metrics(operators: List[str], operands: List[str]) -> Tuple[float, float, float]:
+    """
+    Calculate Halstead Metrics:
+    n1 = distinct operators, n2 = distinct operands
+    N1 = total operators, N2 = total operands
+    Vocabulary n = n1 + n2
+    Length N = N1 + N2
+    Volume V = N * log2(n)
+    Difficulty D = (n1 / 2) * (N2 / n2)
+    Effort E = D * V
+    """
+    n1 = len(set(operators))
+    n2 = len(set(operands))
+    N1 = len(operators)
+    N2 = len(operands)
+
+    if n1 == 0 or n2 == 0:
+        return 0.0, 0.0, 0.0
+
+    vocabulary = n1 + n2
+    length = N1 + N2
+    
+    volume = length * math.log2(vocabulary) if vocabulary > 0 else 0.0
+    difficulty = (n1 / 2.0) * (N2 / float(n2))
+    effort = difficulty * volume
+    
+    return volume, difficulty, effort
 
 # ── Language Config ───────────────────────────────────────────
 
@@ -168,6 +201,9 @@ class TreeAnalyzer:
 
         # 4. Detailed analysis via walk
         self._walk_function(node, fi, current_depth=0)
+        
+        # 5. Compute Halstead for the function
+        fi.halstead_volume, fi.halstead_difficulty, fi.halstead_effort = calculate_halstead_metrics(fi.operators, fi.operands)
         
         return fi
 
