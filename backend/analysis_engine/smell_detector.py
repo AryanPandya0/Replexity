@@ -1,6 +1,7 @@
 """
-Code Smell Detector – detects common code smells and returns structured suggestions.
-Smells: Long Method, Large Class, Deep Nesting, God Object, Duplicate Logic.
+Code Smell Detector – detects common single-file code smells.
+Smells: Long Method, Large Class, Deep Nesting, God Object, High Complexity, Long File.
+Note: Duplicate code detection is handled by clone_detector.py.
 """
 from typing import List
 from dataclasses import dataclass

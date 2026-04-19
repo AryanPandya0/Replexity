@@ -20,6 +20,7 @@ from backend.analysis_engine.repo_manager import (  # type: ignore
 )
 from backend.analysis_engine.risk_model import calculate_risk_score  # type: ignore
 from backend.analysis_engine.smell_detector import detect_smells  # type: ignore
+from backend.analysis_engine.clone_detector import detect_clones  # type: ignore
 from backend.analysis_engine.linter_service import run_all_linters  # type: ignore
 from backend.api.schemas import (  # type: ignore
     AnalysisResult,
@@ -247,6 +248,67 @@ def _run_analysis(analysis_id: str, repo_root: str, source_files: List[str]) -> 
             # Skip files that fail to parse
             print(f"Warning: Failed to analyze {file_path}: {e}")
             continue
+
+    # 12. Detect duplicate code clones (cross-file)
+    print(f"Analysis Pipeline: Running duplicate code detection...", flush=True)
+    file_sources = {f.file_path: f.code_content for f in all_file_metrics if f.code_content}
+    clone_pairs = detect_clones(file_sources, min_lines=6)
+    print(f"Analysis Pipeline: Found {len(clone_pairs)} clone pairs.", flush=True)
+
+    # Build a quick lookup: file_path -> FileMetrics
+    _file_lookup: Dict[str, FileMetrics] = {f.file_path: f for f in all_file_metrics}
+
+    for clone in clone_pairs:
+        # Create smell for file_a
+        smell_a = CodeSmellResult(
+            file=clone.file_a,
+            issue="Duplicate Code",
+            function=None,
+            line=clone.start_a,
+            suggestion=(
+                f"Lines {clone.start_a}–{clone.end_a} ({clone.num_lines} lines) are duplicated "
+                f"in `{clone.file_b}` at lines {clone.start_b}–{clone.end_b}. "
+                f"Extract the shared logic into a common utility function or module."
+            ),
+        )
+        # Create smell for file_b
+        smell_b = CodeSmellResult(
+            file=clone.file_b,
+            issue="Duplicate Code",
+            function=None,
+            line=clone.start_b,
+            suggestion=(
+                f"Lines {clone.start_b}–{clone.end_b} ({clone.num_lines} lines) are duplicated "
+                f"in `{clone.file_a}` at lines {clone.start_a}–{clone.end_a}. "
+                f"Extract the shared logic into a common utility function or module."
+            ),
+        )
+        all_smells.append(smell_a)
+        all_smells.append(smell_b)
+
+        # Attach to per-file metrics
+        if clone.file_a in _file_lookup:
+            _file_lookup[clone.file_a].code_smells.append(smell_a)
+        if clone.file_b in _file_lookup:
+            _file_lookup[clone.file_b].code_smells.append(smell_b)
+
+        # Generate refactoring suggestion for larger clones
+        if clone.num_lines >= 10:
+            sug = RefactorSuggestion(
+                file=clone.file_a,
+                function=None,
+                issue="Duplicate code block",
+                suggestion=(
+                    f"{clone.num_lines} lines duplicated between `{clone.file_a}` "
+                    f"(L{clone.start_a}–{clone.end_a}) and `{clone.file_b}` "
+                    f"(L{clone.start_b}–{clone.end_b}). "
+                    f"Create a shared helper and call it from both locations."
+                ),
+                priority="high" if clone.num_lines >= 20 else "medium",
+            )
+            all_suggestions.append(sug)
+            if clone.file_a in _file_lookup:
+                _file_lookup[clone.file_a].refactor_suggestions.append(sug)
 
     # Calculate Coupling (Ca, Ce, Instability) and build Dependency Graph
     from backend.api.schemas import DependencyGraph, GraphEdge, GraphNode  # type: ignore
