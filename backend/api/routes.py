@@ -266,8 +266,8 @@ def _run_analysis(analysis_id: str, repo_root: str, source_files: List[str]) -> 
             function=None,
             line=clone.start_a,
             suggestion=(
-                f"Lines {clone.start_a}–{clone.end_a} ({clone.num_lines} lines) are duplicated "
-                f"in `{clone.file_b}` at lines {clone.start_b}–{clone.end_b}. "
+                f"Lines {clone.start_a}-{clone.end_a} ({clone.num_lines} lines) are duplicated "
+                f"in `{clone.file_b}` at lines {clone.start_b}-{clone.end_b}. "
                 f"Extract the shared logic into a common utility function or module."
             ),
         )
@@ -278,8 +278,8 @@ def _run_analysis(analysis_id: str, repo_root: str, source_files: List[str]) -> 
             function=None,
             line=clone.start_b,
             suggestion=(
-                f"Lines {clone.start_b}–{clone.end_b} ({clone.num_lines} lines) are duplicated "
-                f"in `{clone.file_a}` at lines {clone.start_a}–{clone.end_a}. "
+                f"Lines {clone.start_b}-{clone.end_b} ({clone.num_lines} lines) are duplicated "
+                f"in `{clone.file_a}` at lines {clone.start_a}-{clone.end_a}. "
                 f"Extract the shared logic into a common utility function or module."
             ),
         )
@@ -300,8 +300,8 @@ def _run_analysis(analysis_id: str, repo_root: str, source_files: List[str]) -> 
                 issue="Duplicate code block",
                 suggestion=(
                     f"{clone.num_lines} lines duplicated between `{clone.file_a}` "
-                    f"(L{clone.start_a}–{clone.end_a}) and `{clone.file_b}` "
-                    f"(L{clone.start_b}–{clone.end_b}). "
+                    f"(L{clone.start_a}-{clone.end_a}) and `{clone.file_b}` "
+                    f"(L{clone.start_b}-{clone.end_b}). "
                     f"Create a shared helper and call it from both locations."
                 ),
                 priority="high" if clone.num_lines >= 20 else "medium",
@@ -648,50 +648,56 @@ async def export_pdf(analysis_id: str):
 
     from fpdf import FPDF  # type: ignore
 
+    def _s(text: str) -> str:
+        """Helper to ensure text is compatible with standard PDF fonts (Latin-1)."""
+        if not text: return ""
+        # Convert to latin-1, replacing unknown chars with '?'
+        return text.encode("latin-1", errors="replace").decode("latin-1")
+
     pdf = FPDF()
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.add_page()
     pdf.set_font("Helvetica", "B", 16)
-    pdf.cell(0, 10, f"Code Analysis Report: {result.project_name}", ln=True)
+    pdf.cell(0, 10, _s(f"Code Analysis Report: {result.project_name}"), ln=True)
     pdf.set_font("Helvetica", "", 10)
-    pdf.cell(0, 6, f"Analysis ID: {result.analysis_id}", ln=True)
+    pdf.cell(0, 6, _s(f"Analysis ID: {result.analysis_id}"), ln=True)
     pdf.ln(5)
 
     # Overview
     pdf.set_font("Helvetica", "B", 13)
-    pdf.cell(0, 8, "Project Overview", ln=True)
+    pdf.cell(0, 8, _s("Project Overview"), ln=True)
     pdf.set_font("Helvetica", "", 10)
     o = result.overview
-    pdf.cell(0, 6, f"Total Files: {o.total_files} | Functions: {o.total_functions} | Classes: {o.total_classes}", ln=True)
-    pdf.cell(0, 6, f"Total LOC: {o.total_loc} | Avg Complexity: {o.avg_complexity}", ln=True)
-    pdf.cell(0, 6, f"Health Score: {o.health_score}/100 | Avg Maintainability: {o.avg_maintainability}", ln=True)
+    pdf.cell(0, 6, _s(f"Total Files: {o.total_files} | Functions: {o.total_functions} | Classes: {o.total_classes}"), ln=True)
+    pdf.cell(0, 6, _s(f"Total LOC: {o.total_loc} | Avg Complexity: {o.avg_complexity}"), ln=True)
+    pdf.cell(0, 6, _s(f"Health Score: {o.health_score}/100 | Avg Maintainability: {o.avg_maintainability}"), ln=True)
     pdf.ln(3)
 
     # Risk Distribution
     pdf.set_font("Helvetica", "B", 13)
-    pdf.cell(0, 8, "Risk Distribution", ln=True)
+    pdf.cell(0, 8, _s("Risk Distribution"), ln=True)
     pdf.set_font("Helvetica", "", 10)
     for level, count in result.risk_distribution.items():
-        pdf.cell(0, 6, f"  {level.capitalize()}: {count} files", ln=True)
+        pdf.cell(0, 6, _s(f"  {level.capitalize()}: {count} files"), ln=True)
     pdf.ln(3)
 
     # Top risky files
     pdf.set_font("Helvetica", "B", 13)
-    pdf.cell(0, 8, "Top Risk Files", ln=True)
+    pdf.cell(0, 8, _s("Top Risk Files"), ln=True)
     pdf.set_font("Helvetica", "", 8)
     for f in result.files[:25]:
         metrics_str = f"Risk: {f.risk_score} | CC: {f.cyclomatic_complexity} | Cog: {f.cognitive_complexity} | LOC: {f.loc} | Churn: {f.code_churn} | Ca/Ce: {f.coupling_afferent}/{f.coupling_efferent}"
-        pdf.cell(0, 5, f"  {f.file_path} - {metrics_str}", ln=True)
+        pdf.cell(0, 5, _s(f"  {f.file_path} - {metrics_str}"), ln=True)
     pdf.ln(3)
 
     # Code Smells
     if result.code_smells:
         pdf.set_font("Helvetica", "B", 13)
-        pdf.cell(0, 8, "Code Smells", ln=True)
+        pdf.cell(0, 8, _s("Code Smells"), ln=True)
         pdf.set_font("Helvetica", "", 9)
         for s in result.code_smells[:30]:
             func_str = f" in {s.function}()" if s.function else ""
-            pdf.multi_cell(0, 5, f"  [{s.issue}] {s.file}{func_str}: {s.suggestion}")
+            pdf.multi_cell(0, 5, _s(f"  [{s.issue}] {s.file}{func_str}: {s.suggestion}"))
         pdf.ln(3)
 
     pdf_bytes = pdf.output()
