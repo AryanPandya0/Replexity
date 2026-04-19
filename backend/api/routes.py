@@ -683,92 +683,150 @@ async def export_csv(analysis_id: str):
 
 @router.get("/export/{analysis_id}/pdf")
 async def export_pdf(analysis_id: str):
-    """Export analysis results as PDF."""
+    """Export stylized analysis results as PDF."""
     try:
         print(f"PDF Export: Starting generation for {analysis_id}...", flush=True)
         result = _get_result(analysis_id)
         if not result:
-            print(f"PDF Export: Analysis {analysis_id} not found in cache/disk.", flush=True)
             raise HTTPException(status_code=404, detail="Analysis not found.")
 
         from fpdf import FPDF  # type: ignore
 
         def _s(text: str) -> str:
-            """Helper to ensure text is compatible with standard PDF fonts (Latin-1)."""
             if not text: return ""
             return text.encode("latin-1", errors="replace").decode("latin-1")
 
-        pdf = FPDF()
-        pdf.set_auto_page_break(auto=True, margin=15)
+        class StylizedPDF(FPDF):
+            def header(self):
+                # Modern Dark Header
+                self.set_fill_color(15, 23, 42) # slate-900
+                self.rect(0, 0, 210, 40, 'F')
+                
+                self.set_font("Helvetica", "B", 24)
+                self.set_text_color(255, 255, 255)
+                self.set_xy(15, 12)
+                self.cell(0, 10, _s("REPLEXITY"), ln=False)
+                
+                self.set_font("Helvetica", "", 9)
+                self.set_text_color(148, 163, 184) # slate-400
+                self.set_xy(15, 22)
+                self.cell(0, 10, _s("Advanced Code Intelligence Report"), ln=True)
+                
+                self.ln(12)
+
+            def footer(self):
+                self.set_y(-15)
+                self.set_font("Helvetica", "I", 8)
+                self.set_text_color(100, 116, 139)
+                self.cell(0, 10, f"Page {self.page_no()} | Analysis ID: {analysis_id}", align='C')
+
+        pdf = StylizedPDF()
+        pdf.set_auto_page_break(auto=True, margin=20)
         pdf.add_page()
-        # Header
-        pdf.set_font("Helvetica", "B", 16)
         safe_w = pdf.w - pdf.l_margin - pdf.r_margin
-        pdf.set_x(pdf.l_margin)
-        pdf.multi_cell(safe_w, 10, _s(f"Code Analysis Report: {result.project_name}"))
-        
-        pdf.set_font("Helvetica", "", 10)
-        pdf.set_x(pdf.l_margin)
-        pdf.cell(safe_w, 6, _s(f"Ref: {result.analysis_id}"), ln=True)
+
+        # ── Project Info ──
         pdf.ln(5)
-
-        # Overview
-        pdf.set_font("Helvetica", "B", 13)
-        pdf.set_x(pdf.l_margin)
-        pdf.cell(safe_w, 8, _s("Project Overview"), ln=True)
-        
-        pdf.set_font("Helvetica", "", 10)
-        o = result.overview
-        metrics_line = f"Files: {o.total_files} | Funcs: {o.total_functions} | Classes: {o.total_classes} | LOC: {o.total_loc}"
-        pdf.set_x(pdf.l_margin)
-        pdf.cell(safe_w, 6, _s(metrics_line), ln=True)
-        
-        health_line = f"Health: {o.health_score}/100 | Complexity: {o.avg_complexity} | Maint: {o.avg_maintainability}"
-        pdf.set_x(pdf.l_margin)
-        pdf.cell(safe_w, 6, _s(health_line), ln=True)
-        pdf.ln(3)
-
-        # Risk Distribution
-        pdf.set_font("Helvetica", "B", 13)
-        pdf.set_x(pdf.l_margin)
-        pdf.cell(safe_w, 8, _s("Risk Distribution"), ln=True)
-        pdf.set_font("Helvetica", "", 10)
-        for level, count in result.risk_distribution.items():
-            pdf.set_x(pdf.l_margin)
-            pdf.cell(safe_w, 6, _s(f"  {level.capitalize()}: {count} files"), ln=True)
-        pdf.ln(3)
-
-        # Top risky files
-        pdf.set_font("Helvetica", "B", 13)
-        pdf.set_x(pdf.l_margin)
-        pdf.cell(safe_w, 8, _s("Top Risk Files"), ln=True)
-        pdf.set_font("Helvetica", "", 8)
-        for f in result.files[:25]:
-            m_text = f"Risk: {f.risk_score} | CC: {f.cyclomatic_complexity} | Cog: {f.cognitive_complexity} | LOC: {f.loc}"
-            pdf.set_x(pdf.l_margin)
-            pdf.multi_cell(safe_w, 5, _s(f"  {f.file_path}\n  {m_text}"))
-            pdf.ln(1)
+        pdf.set_text_color(30, 41, 59)
+        pdf.set_font("Helvetica", "B", 18)
+        pdf.set_x(15)
+        pdf.multi_cell(safe_w, 10, _s(result.project_name))
         pdf.ln(2)
 
-        # Code Smells
+        # ── Overview Cards ──
+        o = result.overview
+        # Draw a subtle background for the summary area
+        pdf.set_fill_color(248, 250, 252) # slate-50
+        pdf.rect(15, pdf.get_y(), safe_w, 32, 'F')
+        
+        pdf.set_font("Helvetica", "B", 10)
+        pdf.set_text_color(71, 85, 105) # slate-600
+        
+        # Row 1
+        pdf.set_xy(20, pdf.get_y() + 5)
+        pdf.cell(45, 10, _s(f"HEALTH: {o.health_score}/100"))
+        pdf.cell(45, 10, _s(f"FILES: {o.total_files}"))
+        pdf.cell(45, 10, _s(f"FUNCTIONS: {o.total_functions}"))
+        
+        # Row 2
+        pdf.set_xy(20, pdf.get_y() + 8)
+        pdf.cell(45, 10, _s(f"AVG COMPLEXITY: {o.avg_complexity}"))
+        pdf.cell(45, 10, _s(f"MAINTAINABILITY: {o.avg_maintainability}"))
+        pdf.cell(45, 10, _s(f"TOTAL LOC: {o.total_loc}"))
+        
+        pdf.ln(20)
+
+        # ── Risk Distribution ──
+        pdf.set_font("Helvetica", "B", 13)
+        pdf.set_text_color(15, 23, 42)
+        pdf.set_x(15)
+        pdf.cell(0, 10, _s("Risk Profile Distribution"), ln=True)
+        
+        # Simple color bars for distribution
+        colors = {
+            "low": (34, 197, 94),      # green-500
+            "medium": (234, 179, 8),    # yellow-500
+            "high": (249, 115, 22),     # orange-500
+            "critical": (239, 68, 68)   # red-500
+        }
+        
+        for level, count in result.risk_distribution.items():
+            pdf.set_x(18)
+            pdf.set_fill_color(*colors.get(level, (100, 100, 100)))
+            pdf.rect(18, pdf.get_y() + 2, 3, 3, 'F')
+            pdf.set_xy(23, pdf.get_y())
+            pdf.set_font("Helvetica", "", 10)
+            pdf.set_text_color(51, 65, 85)
+            pdf.cell(0, 7, _s(f"{level.capitalize()}: {count} files"), ln=True)
+        pdf.ln(5)
+
+        # ── Top Risk Files ──
+        pdf.set_fill_color(241, 245, 249) # slate-100
+        pdf.set_font("Helvetica", "B", 13)
+        pdf.set_text_color(15, 23, 42)
+        pdf.set_x(15)
+        pdf.cell(safe_w, 10, _s(" Hotspots: Highest Risk Components"), ln=True, fill=True)
+        pdf.ln(2)
+        
+        pdf.set_font("Helvetica", "", 8)
+        for f in result.files[:20]:
+            pdf.set_x(18)
+            pdf.set_text_color(14, 165, 233) # sky-500 for file paths
+            pdf.cell(0, 5, _s(f.file_path), ln=True)
+            
+            pdf.set_x(22)
+            pdf.set_text_color(100, 116, 139)
+            m_text = f"Risk {f.risk_score} | Complexity {f.cyclomatic_complexity} | Cognitive {f.cognitive_complexity} | LOC {f.loc} | Churn {f.code_churn}"
+            pdf.cell(0, 4, _s(m_text), ln=True)
+            pdf.ln(1)
+        pdf.ln(5)
+
+        # ── Code Smells ──
         if result.code_smells:
+            pdf.set_fill_color(241, 245, 249)
             pdf.set_font("Helvetica", "B", 13)
-            pdf.set_x(pdf.l_margin)
-            pdf.cell(safe_w, 8, _s("Code Smells"), ln=True)
-            pdf.set_font("Helvetica", "", 9)
-            for s in result.code_smells[:30]:
-                func_str = f" in {s.function}()" if s.function else ""
-                s_text = f"[{s.issue}] {s.file}{func_str}: {s.suggestion}"
-                pdf.set_x(pdf.l_margin)
-                pdf.multi_cell(safe_w, 5, _s(f"  {s_text}"))
-            pdf.ln(3)
+            pdf.set_text_color(15, 23, 42)
+            pdf.set_x(15)
+            pdf.cell(safe_w, 10, _s(" Strategic Technical Debt: Code Smells"), ln=True, fill=True)
+            pdf.ln(2)
+            
+            for s in result.code_smells[:25]:
+                pdf.set_x(18)
+                pdf.set_font("Helvetica", "B", 9)
+                pdf.set_text_color(225, 29, 72) # rose-600 for issue
+                pdf.cell(0, 5, _s(f"[{s.issue.upper()}]"), ln=True)
+                
+                pdf.set_x(20)
+                pdf.set_font("Helvetica", "", 9)
+                pdf.set_text_color(51, 65, 85)
+                func_part = f" in {s.function}()" if s.function else ""
+                pdf.multi_cell(safe_w - 5, 5, _s(f"{s.file}{func_part}: {s.suggestion}"))
+                pdf.ln(2)
 
         pdf_bytes = pdf.output()
         if isinstance(pdf_bytes, bytearray):
             pdf_bytes = bytes(pdf_bytes)
 
-        print(f"PDF Export: Generation complete for {analysis_id}. Size: {len(pdf_bytes)} bytes.", flush=True)
-        
         from fastapi import Response
         return Response(
             content=pdf_bytes,
@@ -776,7 +834,6 @@ async def export_pdf(analysis_id: str):
             headers={"Content-Disposition": f"attachment; filename=analysis_{analysis_id}.pdf"},
         )
     except Exception as e:
-        print(f"Error generating PDF for {analysis_id}: {e}")
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"PDF generation failed: {str(e)}")
