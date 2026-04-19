@@ -73,12 +73,45 @@ def _create_task() -> AnalysisTask:
 MAX_CACHE_SIZE = 20
 _analysis_cache: OrderedDict[str, AnalysisResult] = OrderedDict()
 _cache_lock = threading.Lock()
+CACHE_DIR = os.path.join(os.getcwd(), "cache")
 
 def _cache_result(analysis_id: str, result: AnalysisResult):
     with _cache_lock:
         if len(_analysis_cache) >= MAX_CACHE_SIZE:
             _analysis_cache.popitem(last=False)  # Remove oldest
         _analysis_cache[analysis_id] = result
+    
+    # Persistent cache (disk)
+    try:
+        os.makedirs(CACHE_DIR, exist_ok=True)
+        file_path = os.path.join(CACHE_DIR, f"{analysis_id}.json")
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(result.model_dump_json())
+    except Exception as e:
+        print(f"Warning: Failed to persist cache for {analysis_id}: {e}")
+
+def _get_result(analysis_id: str) -> Optional[AnalysisResult]:
+    """Get result from memory cache or disk."""
+    # 1. Check memory
+    with _cache_lock:
+        if analysis_id in _analysis_cache:
+            return _analysis_cache[analysis_id]
+    
+    # 2. Check disk
+    file_path = os.path.join(CACHE_DIR, f"{analysis_id}.json")
+    if os.path.exists(file_path):
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                data = f.read()
+                result = AnalysisResult.model_validate_json(data)
+                # Put back in memory cache
+                with _cache_lock:
+                    _analysis_cache[analysis_id] = result
+                return result
+        except Exception as e:
+            print(f"Warning: Failed to load persistent cache for {analysis_id}: {e}")
+            
+    return None
 
 
 # ── Core Analysis Pipeline ──────────────────────────────────────
@@ -555,36 +588,48 @@ async def analyze_local(req: LocalAnalysisRequest, background_tasks: BackgroundT
 
 
 @router.get("/status/{task_id}")
-async def get_task_status(task_id: str):
+async def get_status(task_id: str):
+    """Check analysis status."""
     with _store_lock:
         task = _task_store.get(task_id)
-    if not task:
-        raise HTTPException(status_code=404, detail="Task not found")
     
-    return {
-        "task_id": task.task_id,
-        "status": task.status,
-        "result": task.result,
-        "error": task.error
-    }
+    if task:
+        return {
+            "task_id": task.task_id,
+            "status": task.status,
+            "result": task.result,
+            "error": task.error
+        }
+    
+    # If task not in store, maybe it's in the persistent cache
+    cached_result = _get_result(task_id)
+    if cached_result:
+        return {
+            "task_id": task_id,
+            "status": TaskStatus.COMPLETED,
+            "result": cached_result,
+            "error": None
+        }
+    
+    raise HTTPException(status_code=404, detail="Task not found.")
 
 
 @router.get("/results/{analysis_id}", response_model=AnalysisResult)
 async def get_results(analysis_id: str):
     """Retrieve cached analysis results."""
-    with _cache_lock:
-        if analysis_id not in _analysis_cache:
-            raise HTTPException(status_code=404, detail="Analysis not found. Please run a new analysis.")
-        return _analysis_cache[analysis_id]
+    result = _get_result(analysis_id)
+    if not result:
+        raise HTTPException(status_code=404, detail="Analysis not found. Please run a new analysis.")
+    return result
 
 
 @router.get("/results/{analysis_id}/file/{file_path:path}")
 async def get_file_detail(analysis_id: str, file_path: str):
     """Retrieve detailed metrics for a specific file."""
-    with _cache_lock:
-        if analysis_id not in _analysis_cache:
-            raise HTTPException(status_code=404, detail="Analysis not found.")
-        result = _analysis_cache[analysis_id]
+    result = _get_result(analysis_id)
+    if not result:
+        raise HTTPException(status_code=404, detail="Analysis not found.")
+    
     for f in result.files:
         if f.file_path == file_path:
             return f
@@ -596,10 +641,9 @@ async def get_file_detail(analysis_id: str, file_path: str):
 @router.get("/export/{analysis_id}/json")
 async def export_json(analysis_id: str):
     """Export analysis results as JSON."""
-    with _cache_lock:
-        if analysis_id not in _analysis_cache:
-            raise HTTPException(status_code=404, detail="Analysis not found.")
-        result = _analysis_cache[analysis_id]
+    result = _get_result(analysis_id)
+    if not result:
+        raise HTTPException(status_code=404, detail="Analysis not found.")
     content = result.model_dump_json(indent=2)
     return StreamingResponse(
         io.BytesIO(content.encode()),
@@ -611,10 +655,9 @@ async def export_json(analysis_id: str):
 @router.get("/export/{analysis_id}/csv")
 async def export_csv(analysis_id: str):
     """Export file-level metrics as CSV."""
-    with _cache_lock:
-        if analysis_id not in _analysis_cache:
-            raise HTTPException(status_code=404, detail="Analysis not found.")
-        result = _analysis_cache[analysis_id]
+    result = _get_result(analysis_id)
+    if not result:
+        raise HTTPException(status_code=404, detail="Analysis not found.")
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow([
@@ -641,68 +684,99 @@ async def export_csv(analysis_id: str):
 @router.get("/export/{analysis_id}/pdf")
 async def export_pdf(analysis_id: str):
     """Export analysis results as PDF."""
-    with _cache_lock:
-        if analysis_id not in _analysis_cache:
+    try:
+        print(f"PDF Export: Starting generation for {analysis_id}...", flush=True)
+        result = _get_result(analysis_id)
+        if not result:
+            print(f"PDF Export: Analysis {analysis_id} not found in cache/disk.", flush=True)
             raise HTTPException(status_code=404, detail="Analysis not found.")
-        result = _analysis_cache[analysis_id]
 
-    from fpdf import FPDF  # type: ignore
+        from fpdf import FPDF  # type: ignore
 
-    def _s(text: str) -> str:
-        """Helper to ensure text is compatible with standard PDF fonts (Latin-1)."""
-        if not text: return ""
-        # Convert to latin-1, replacing unknown chars with '?'
-        return text.encode("latin-1", errors="replace").decode("latin-1")
+        def _s(text: str) -> str:
+            """Helper to ensure text is compatible with standard PDF fonts (Latin-1)."""
+            if not text: return ""
+            return text.encode("latin-1", errors="replace").decode("latin-1")
 
-    pdf = FPDF()
-    pdf.set_auto_page_break(auto=True, margin=15)
-    pdf.add_page()
-    pdf.set_font("Helvetica", "B", 16)
-    pdf.cell(0, 10, _s(f"Code Analysis Report: {result.project_name}"), ln=True)
-    pdf.set_font("Helvetica", "", 10)
-    pdf.cell(0, 6, _s(f"Analysis ID: {result.analysis_id}"), ln=True)
-    pdf.ln(5)
+        pdf = FPDF()
+        pdf.set_auto_page_break(auto=True, margin=15)
+        pdf.add_page()
+        # Header
+        pdf.set_font("Helvetica", "B", 16)
+        safe_w = pdf.w - pdf.l_margin - pdf.r_margin
+        pdf.set_x(pdf.l_margin)
+        pdf.multi_cell(safe_w, 10, _s(f"Code Analysis Report: {result.project_name}"))
+        
+        pdf.set_font("Helvetica", "", 10)
+        pdf.set_x(pdf.l_margin)
+        pdf.cell(safe_w, 6, _s(f"Ref: {result.analysis_id}"), ln=True)
+        pdf.ln(5)
 
-    # Overview
-    pdf.set_font("Helvetica", "B", 13)
-    pdf.cell(0, 8, _s("Project Overview"), ln=True)
-    pdf.set_font("Helvetica", "", 10)
-    o = result.overview
-    pdf.cell(0, 6, _s(f"Total Files: {o.total_files} | Functions: {o.total_functions} | Classes: {o.total_classes}"), ln=True)
-    pdf.cell(0, 6, _s(f"Total LOC: {o.total_loc} | Avg Complexity: {o.avg_complexity}"), ln=True)
-    pdf.cell(0, 6, _s(f"Health Score: {o.health_score}/100 | Avg Maintainability: {o.avg_maintainability}"), ln=True)
-    pdf.ln(3)
-
-    # Risk Distribution
-    pdf.set_font("Helvetica", "B", 13)
-    pdf.cell(0, 8, _s("Risk Distribution"), ln=True)
-    pdf.set_font("Helvetica", "", 10)
-    for level, count in result.risk_distribution.items():
-        pdf.cell(0, 6, _s(f"  {level.capitalize()}: {count} files"), ln=True)
-    pdf.ln(3)
-
-    # Top risky files
-    pdf.set_font("Helvetica", "B", 13)
-    pdf.cell(0, 8, _s("Top Risk Files"), ln=True)
-    pdf.set_font("Helvetica", "", 8)
-    for f in result.files[:25]:
-        metrics_str = f"Risk: {f.risk_score} | CC: {f.cyclomatic_complexity} | Cog: {f.cognitive_complexity} | LOC: {f.loc} | Churn: {f.code_churn} | Ca/Ce: {f.coupling_afferent}/{f.coupling_efferent}"
-        pdf.cell(0, 5, _s(f"  {f.file_path} - {metrics_str}"), ln=True)
-    pdf.ln(3)
-
-    # Code Smells
-    if result.code_smells:
+        # Overview
         pdf.set_font("Helvetica", "B", 13)
-        pdf.cell(0, 8, _s("Code Smells"), ln=True)
-        pdf.set_font("Helvetica", "", 9)
-        for s in result.code_smells[:30]:
-            func_str = f" in {s.function}()" if s.function else ""
-            pdf.multi_cell(0, 5, _s(f"  [{s.issue}] {s.file}{func_str}: {s.suggestion}"))
+        pdf.set_x(pdf.l_margin)
+        pdf.cell(safe_w, 8, _s("Project Overview"), ln=True)
+        
+        pdf.set_font("Helvetica", "", 10)
+        o = result.overview
+        metrics_line = f"Files: {o.total_files} | Funcs: {o.total_functions} | Classes: {o.total_classes} | LOC: {o.total_loc}"
+        pdf.set_x(pdf.l_margin)
+        pdf.cell(safe_w, 6, _s(metrics_line), ln=True)
+        
+        health_line = f"Health: {o.health_score}/100 | Complexity: {o.avg_complexity} | Maint: {o.avg_maintainability}"
+        pdf.set_x(pdf.l_margin)
+        pdf.cell(safe_w, 6, _s(health_line), ln=True)
         pdf.ln(3)
 
-    pdf_bytes = pdf.output()
-    return StreamingResponse(
-        io.BytesIO(pdf_bytes),
-        media_type="application/pdf",
-        headers={"Content-Disposition": f"attachment; filename=analysis_{analysis_id}.pdf"},
-    )
+        # Risk Distribution
+        pdf.set_font("Helvetica", "B", 13)
+        pdf.set_x(pdf.l_margin)
+        pdf.cell(safe_w, 8, _s("Risk Distribution"), ln=True)
+        pdf.set_font("Helvetica", "", 10)
+        for level, count in result.risk_distribution.items():
+            pdf.set_x(pdf.l_margin)
+            pdf.cell(safe_w, 6, _s(f"  {level.capitalize()}: {count} files"), ln=True)
+        pdf.ln(3)
+
+        # Top risky files
+        pdf.set_font("Helvetica", "B", 13)
+        pdf.set_x(pdf.l_margin)
+        pdf.cell(safe_w, 8, _s("Top Risk Files"), ln=True)
+        pdf.set_font("Helvetica", "", 8)
+        for f in result.files[:25]:
+            m_text = f"Risk: {f.risk_score} | CC: {f.cyclomatic_complexity} | Cog: {f.cognitive_complexity} | LOC: {f.loc}"
+            pdf.set_x(pdf.l_margin)
+            pdf.multi_cell(safe_w, 5, _s(f"  {f.file_path}\n  {m_text}"))
+            pdf.ln(1)
+        pdf.ln(2)
+
+        # Code Smells
+        if result.code_smells:
+            pdf.set_font("Helvetica", "B", 13)
+            pdf.set_x(pdf.l_margin)
+            pdf.cell(safe_w, 8, _s("Code Smells"), ln=True)
+            pdf.set_font("Helvetica", "", 9)
+            for s in result.code_smells[:30]:
+                func_str = f" in {s.function}()" if s.function else ""
+                s_text = f"[{s.issue}] {s.file}{func_str}: {s.suggestion}"
+                pdf.set_x(pdf.l_margin)
+                pdf.multi_cell(safe_w, 5, _s(f"  {s_text}"))
+            pdf.ln(3)
+
+        pdf_bytes = pdf.output()
+        if isinstance(pdf_bytes, bytearray):
+            pdf_bytes = bytes(pdf_bytes)
+
+        print(f"PDF Export: Generation complete for {analysis_id}. Size: {len(pdf_bytes)} bytes.", flush=True)
+        
+        from fastapi import Response
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename=analysis_{analysis_id}.pdf"},
+        )
+    except Exception as e:
+        print(f"Error generating PDF for {analysis_id}: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"PDF generation failed: {str(e)}")
