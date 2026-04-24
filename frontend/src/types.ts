@@ -100,5 +100,6 @@ export interface AnalysisResult {
   code_smells: CodeSmellResult[];
   refactor_suggestions: RefactorSuggestion[];
   risk_distribution: Record<string, number>;
+  dead_functions: CodeSmellResult[];
   dependency_graph: DependencyGraph | null;
 }

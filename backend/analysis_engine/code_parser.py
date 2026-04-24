@@ -28,6 +28,7 @@ class FunctionInfo:
     halstead_volume: float = 0.0
     halstead_difficulty: float = 0.0
     halstead_effort: float = 0.0
+    calls: Set[str] = field(default_factory=set)
 
 @dataclass
 class ParseResult:
@@ -44,6 +45,7 @@ class ParseResult:
     max_nesting_depth: int = 0
     inheritance_depth: int = 0
     imports: Set[str] = field(default_factory=set)
+    calls: Set[str] = field(default_factory=set)
     functions: List[FunctionInfo] = field(default_factory=list)
 
 
@@ -158,6 +160,7 @@ class TreeAnalyzer:
 
             func_info = self._analyze_function(node, name_override)
             result.functions.append(func_info)
+            result.calls.update(func_info.calls)
             result.num_functions += 1
             result.num_branches += func_info.branches
             result.num_loops += func_info.loops
@@ -170,6 +173,17 @@ class TreeAnalyzer:
         # Comments
         elif node.type == "comment":
             result.comment_lines += (node.end_point[0] - node.start_point[0] + 1)
+        
+        # Function Calls
+        elif node.type in ("call", "call_expression"):
+            for child in node.children:
+                if child.type in ("identifier", "property_identifier", "attribute"):
+                    call_name = child.text.decode("utf-8", "ignore")
+                    # Handle python attributes like 'obj.method' -> 'method'
+                    if "." in call_name:
+                        call_name = call_name.split(".")[-1]
+                    result.calls.add(call_name)
+                    break
 
         if not should_skip_children:
             for child in node.children:
@@ -224,6 +238,16 @@ class TreeAnalyzer:
             next_depth = current_depth
 
         fi.nesting_depth = max(fi.nesting_depth, current_depth)
+        
+        # Function Calls
+        if node.type in ("call", "call_expression"):
+            for child in node.children:
+                if child.type in ("identifier", "property_identifier", "attribute"):
+                    call_name = child.text.decode("utf-8", "ignore")
+                    if "." in call_name:
+                        call_name = call_name.split(".")[-1]
+                    fi.calls.add(call_name)
+                    break
         
         # Halstead heuristic: count identifiers and operators
         if not node.children: # leaf node

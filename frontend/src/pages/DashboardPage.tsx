@@ -225,6 +225,46 @@ export default function DashboardPage({ result }: Props) {
         </Animated>
       </div>
 
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: 20, marginBottom: 20 }}>
+        <Animated style={cBox} delay={0.35}>
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontSize: '1rem', fontWeight: 800 }}>Dead Code Discovery</div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>Functions defined but never called</div>
+          </div>
+          <div style={{ height: 260, overflowY: 'auto', paddingRight: 10 }} className="custom-scrollbar">
+            {result.dead_functions && result.dead_functions.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {result.dead_functions.slice(0, 10).map((dead, idx) => (
+                  <div key={idx} style={{ padding: '12px 16px', background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.15)', borderRadius: 8 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#ef4444' }}>{dead.function}</span>
+                      <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>L{dead.line}</span>
+                    </div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      in {dead.file}
+                    </div>
+                  </div>
+                ))}
+                {result.dead_functions.length > 10 && (
+                  <div style={{ fontSize: '0.7rem', textAlign: 'center', color: 'var(--text-muted)', marginTop: 8 }}>
+                    + {result.dead_functions.length - 10} more dead functions
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
+                <div style={{ fontSize: '2rem', marginBottom: 12 }}>✨</div>
+                <div style={{ fontSize: '0.85rem', fontWeight: 700 }}>No Dead Code Detected</div>
+                <div style={{ fontSize: '0.7rem', marginTop: 4 }}>Your codebase is lean and efficient!</div>
+              </div>
+            )}
+          </div>
+        </Animated>
+        
+        {/* Fill the other side with something or just leave it */}
+        <div style={{ display: 'none' }}></div> 
+      </div>
+
       {/* ── Architectural Dependency Graph ── */}
       <Animated style={{ ...cBox, marginBottom: 20 }} delay={0.4}>
         <div style={{ marginBottom: 16 }}>
