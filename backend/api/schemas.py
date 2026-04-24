@@ -149,4 +149,5 @@ class AnalysisResult(BaseModel):
     code_smells: List[CodeSmellResult] = []
     refactor_suggestions: List[RefactorSuggestion] = []
     risk_distribution: Dict[str, int] = {"low": 0, "medium": 0, "high": 0, "critical": 0}
+    dead_functions: List[CodeSmellResult] = []
     dependency_graph: Optional[DependencyGraph] = None

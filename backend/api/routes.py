@@ -131,6 +131,10 @@ def _run_analysis(analysis_id: str, repo_root: str, source_files: List[str]) -> 
     total_complexity = 0.0
     total_maintainability = 0.0
     languages: Dict[str, int] = {}
+    
+    # For Dead Code Detection
+    defined_functions: List[Dict] = [] 
+    all_usages: Set[str] = set()
 
     # Execute external linters (Ruff, ESLint)
     print(f"Analysis Pipeline: Running external linters for {repo_root}...")
@@ -261,6 +265,16 @@ def _run_analysis(analysis_id: str, repo_root: str, source_files: List[str]) -> 
             )
             
             import_map[rel_path] = parse_result.imports
+            all_usages.update(parse_result.imports)
+            all_usages.update(parse_result.calls)
+            
+            for f_info in parse_result.functions:
+                if f_info.name != "anonymous":
+                    defined_functions.append({
+                        "name": f_info.name,
+                        "file": rel_path,
+                        "line": f_info.line_start
+                    })
 
             all_file_metrics.append(file_metric)
             all_smells.extend(smell_results)
@@ -419,6 +433,31 @@ def _run_analysis(analysis_id: str, repo_root: str, source_files: List[str]) -> 
     # Sort files by risk score descending
     all_file_metrics.sort(key=lambda f: f.risk_score, reverse=True)
 
+    # 13. Dead Code Detection
+    print(f"Analysis Pipeline: Running dead code detection...", flush=True)
+    dead_function_results: List[CodeSmellResult] = []
+    
+    # Heuristic: exclude common entry points and special methods
+    EXCLUDE_NAMES = {"main", "handler", "setup", "teardown", "run", "start", "stop", "root"}
+    
+    for df in defined_functions:
+        name = df["name"]
+        # If not used and not a special name and not starting with __ (Python)
+        if name not in all_usages and name not in EXCLUDE_NAMES and not name.startswith("__"):
+            smell = CodeSmellResult(
+                file=df["file"],
+                issue="Dead Code",
+                function=name,
+                line=df["line"],
+                suggestion=f"Function `{name}` is defined but never called or imported. Consider removing it to reduce technical debt."
+            )
+            dead_function_results.append(smell)
+            all_smells.append(smell) # Also add to general smells
+            
+            # Attach to per-file metrics
+            if df["file"] in _file_lookup:
+                _file_lookup[df["file"]].code_smells.append(smell)
+
     result = AnalysisResult(
         analysis_id=analysis_id,
         project_name=project_name,
@@ -427,6 +466,7 @@ def _run_analysis(analysis_id: str, repo_root: str, source_files: List[str]) -> 
         code_smells=all_smells,
         refactor_suggestions=all_suggestions,
         risk_distribution=risk_dist,
+        dead_functions=dead_function_results,
         dependency_graph=dep_graph,
     )
 
@@ -821,6 +861,27 @@ async def export_pdf(analysis_id: str):
                 pdf.set_text_color(51, 65, 85)
                 func_part = f" in {s.function}()" if s.function else ""
                 pdf.multi_cell(safe_w - 5, 5, _s(f"{s.file}{func_part}: {s.suggestion}"))
+                pdf.ln(2)
+
+        # ── Dead Code Discovery ──
+        if result.dead_functions:
+            pdf.set_fill_color(241, 245, 249)
+            pdf.set_font("Helvetica", "B", 13)
+            pdf.set_text_color(15, 23, 42)
+            pdf.set_x(15)
+            pdf.cell(safe_w, 10, _s(" Dead Code Discovery: Potential Removals"), ln=True, fill=True)
+            pdf.ln(2)
+            
+            for d in result.dead_functions[:30]:
+                pdf.set_x(18)
+                pdf.set_font("Helvetica", "B", 9)
+                pdf.set_text_color(239, 68, 68) # red-500
+                pdf.cell(0, 5, _s(f"{d.function}"), ln=True)
+                
+                pdf.set_x(20)
+                pdf.set_font("Helvetica", "", 9)
+                pdf.set_text_color(100, 116, 139)
+                pdf.multi_cell(safe_w - 5, 5, _s(f"Defined in {d.file} at L{d.line}. This function is never imported or called within the project."))
                 pdf.ln(2)
 
         pdf_bytes = pdf.output()
