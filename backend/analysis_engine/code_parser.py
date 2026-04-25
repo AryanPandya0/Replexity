@@ -84,22 +84,41 @@ TS_LANGS = {
     ".js": "javascript",
     ".jsx": "javascript",
     ".ts": "typescript",
-    ".tsx": "tsx"
+    ".tsx": "tsx",
+    ".java": "java",
+    ".go": "go",
+    ".rs": "rust",
+    ".c": "c",
+    ".h": "c",
+    ".cpp": "cpp",
+    ".hpp": "cpp",
+    ".cc": "cpp",
+    ".cxx": "cpp",
+    ".cs": "csharp",
+    ".rb": "ruby",
+    ".php": "php",
+    ".kt": "kotlin",
+    ".swift": "swift"
 }
 
 # Node types considered a branching point
 BRANCH_NODES = {
-    "if_statement", "elif_clause", "case_clause", "conditional_expression", 
-    "switch_case", "switch_default", "ternary_expression"
+    "if_statement", "elif_clause", "else_if_clause", "case_clause", "switch_case", 
+    "conditional_expression", "ternary_expression", "if_expression", "match_arm", 
+    "match_case", "when_entry", "guard_statement"
 }
 
 # Node types considered a loop
 LOOP_NODES = {
-    "for_statement", "while_statement", "do_statement", "for_in_statement"
+    "for_statement", "while_statement", "do_statement", "for_in_statement", 
+    "loop_expression", "repeat_statement", "until_statement", "foreach_statement"
 }
 
 # Node types that start a nesting level
-NESTING_NODES = BRANCH_NODES | LOOP_NODES | {"try_statement", "with_statement", "catch_clause"}
+NESTING_NODES = BRANCH_NODES | LOOP_NODES | {
+    "try_statement", "with_statement", "catch_clause", "finally_clause", 
+    "using_statement", "synchronized_statement", "do_block"
+}
 
 
 class TreeAnalyzer:
@@ -128,26 +147,30 @@ class TreeAnalyzer:
         should_skip_children = False
         
         # Class identification
-        if node.type in ("class_definition", "class_declaration"):
+        if node.type in (
+            "class_definition", "class_declaration", "struct_item", 
+            "struct_specifier", "class_specifier", "type_declaration", "enum_declaration"
+        ):
             result.num_classes += 1
             # Simple local inheritance check
             for child in node.children:
-                if child.type == "argument_list": # Python
-                    result.inheritance_depth = max(result.inheritance_depth, 2)
-                if child.type == "extends_clause": # JS/TS
+                if child.type in ("argument_list", "extends_clause", "base_class_list", "type_inheritance_clause"):
                     result.inheritance_depth = max(result.inheritance_depth, 2)
 
         # Import identification
-        elif "import" in node.type or node.type == "import_statement" or node.type == "import_from_statement":
+        elif any(x in node.type for x in ("import", "using", "include", "use_declaration")):
             result.num_imports += 1
             # Extract import text (heuristic)
             text = node.text.decode("utf-8", "ignore")
-            for word in text.replace("import", " ").replace("from", " ").split():
-                if word and not word.startswith((".", "*", "(")):
+            for word in text.replace("import", " ").replace("from", " ").replace("using", " ").replace("include", " ").replace("use", " ").split():
+                if word and not word.startswith((".", "*", "(", "<", ">", '"')):
                     result.imports.add(word.strip(",;"))
 
         # Function identification
-        elif node.type in ("function_definition", "function_declaration", "method_definition", "arrow_function"):
+        elif node.type in (
+            "function_definition", "function_declaration", "method_definition", 
+            "method_declaration", "function_item", "arrow_function", "method"
+        ):
             name_override = None
             # If arrow function assigned to variable, hunt for the name up-tree
             if node.type == "arrow_function":
@@ -171,13 +194,13 @@ class TreeAnalyzer:
             should_skip_children = True
 
         # Comments
-        elif node.type == "comment":
+        elif node.type in ("comment", "line_comment", "block_comment"):
             result.comment_lines += (node.end_point[0] - node.start_point[0] + 1)
         
         # Function Calls
-        elif node.type in ("call", "call_expression"):
+        elif node.type in ("call", "call_expression", "invocation"):
             for child in node.children:
-                if child.type in ("identifier", "property_identifier", "attribute"):
+                if child.type in ("identifier", "property_identifier", "attribute", "field_identifier"):
                     call_name = child.text.decode("utf-8", "ignore")
                     # Handle python attributes like 'obj.method' -> 'method'
                     if "." in call_name:
@@ -208,9 +231,9 @@ class TreeAnalyzer:
         
         # 3. Parameters
         for child in node.children:
-            if child.type in ("parameters", "formal_parameters"):
+            if child.type in ("parameters", "formal_parameters", "parameter_list"):
                 # Count nodes inside parens that aren't tokens
-                fi.parameters = sum(1 for p in child.children if p.type not in ("(", ")", ",", "{", "}", "[", "]"))
+                fi.parameters = sum(1 for p in child.children if p.type not in ("(", ")", ",", "{", "}", "[", "]", ":", "->"))
                 break
 
         # 4. Detailed analysis via walk
@@ -240,9 +263,9 @@ class TreeAnalyzer:
         fi.nesting_depth = max(fi.nesting_depth, current_depth)
         
         # Function Calls
-        if node.type in ("call", "call_expression"):
+        if node.type in ("call", "call_expression", "invocation"):
             for child in node.children:
-                if child.type in ("identifier", "property_identifier", "attribute"):
+                if child.type in ("identifier", "property_identifier", "attribute", "field_identifier"):
                     call_name = child.text.decode("utf-8", "ignore")
                     if "." in call_name:
                         call_name = call_name.split(".")[-1]
