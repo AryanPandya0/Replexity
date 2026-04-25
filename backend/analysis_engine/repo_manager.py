@@ -11,7 +11,11 @@ import zipfile
 from pathlib import Path
 import git  # type: ignore
 
-SUPPORTED_EXTENSIONS = {".py", ".js", ".ts", ".jsx", ".tsx"}
+SUPPORTED_EXTENSIONS = {
+    ".py", ".js", ".ts", ".jsx", ".tsx",
+    ".java", ".go", ".rs", ".c", ".h", ".cpp", ".hpp", ".cc", ".cxx",
+    ".cs", ".rb", ".php", ".kt", ".swift"
+}
 IGNORE_DIRS = {
     "node_modules", ".git", "__pycache__", ".venv", "venv", "env",
     "dist", "build", ".next", ".nuxt", "coverage", ".tox",
