@@ -13,7 +13,7 @@ interface Props {
 
 export default function FileDetailPage({ result }: Props) {
   const { '*': filePath } = useParams();
-  const decodedPath = decodeURIComponent(filePath || '');
+  const decodedPath = filePath || '';
 
   if (!result) {
     return (
@@ -27,6 +27,7 @@ export default function FileDetailPage({ result }: Props) {
   }
 
   const file = result.files.find((f) => f.file_path === decodedPath);
+
   if (!file) {
     return (
       <div className="responsive-container empty-state">
@@ -103,10 +104,13 @@ export default function FileDetailPage({ result }: Props) {
           {/* ── Functions Table ── */}
           {file.functions.length > 0 && (
             <div style={{ ...card, marginBottom: 24 }}>
-              <div style={{ marginBottom: 16 }}>
-                <div style={{ fontSize: '1rem', fontWeight: 800 }}>Functional Breakdown</div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>{file.functions.length} function definitions</div>
+              <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                  <div style={{ fontSize: '1rem', fontWeight: 800 }}>Functional Breakdown</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>{file.functions.length} function definitions</div>
+                </div>
               </div>
+
               <div className="table-responsive">
                 <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0 }}>
                   <thead>
@@ -198,15 +202,20 @@ export default function FileDetailPage({ result }: Props) {
               <h2 className="text-sm font-black" style={{ textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Bug size={16} style={{ color: '#ef4444' }} /> Code Smells
               </h2>
-              <div className="flex flex-col gap-1\.5">
+              <div className="flex flex-col gap-1.5">
                 {file.code_smells.length === 0 && <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', fontStyle: 'italic' }}>No smells detected.</div>}
-                {file.code_smells.map((smell, i) => (
+                {file.code_smells.slice(0, 6).map((smell, i) => (
                   <div key={i} className="smell-card">
                     <div className="card-title">{smell.issue}</div>
                     {smell.function && <div className="card-function">in {smell.function}()</div>}
                     <div className="card-description">{smell.suggestion}</div>
                   </div>
                 ))}
+                {file.code_smells.length > 6 && (
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center', marginTop: 8 }}>
+                    + {file.code_smells.length - 6} more minor smells hidden
+                  </div>
+                )}
               </div>
             </div>
 
@@ -215,9 +224,9 @@ export default function FileDetailPage({ result }: Props) {
               <h2 className="text-sm font-black" style={{ textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 16 }}>
                 Refactoring Suggestions
               </h2>
-              <div className="flex flex-col gap-1\.5">
+              <div className="flex flex-col gap-1.5">
                 {file.refactor_suggestions.length === 0 && <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', fontStyle: 'italic' }}>No suggestions at this time.</div>}
-                {file.refactor_suggestions.map((sug, i) => (
+                {file.refactor_suggestions.slice(0, 6).map((sug, i) => (
                   <div key={i} className={`suggestion-card ${sug.priority === 'critical' ? 'critical' : ''}`}>
                     <div className="flex justify-between items-center mb-1">
                       <div className="card-title">{sug.issue}</div>
@@ -226,6 +235,11 @@ export default function FileDetailPage({ result }: Props) {
                     <div className="card-description">{sug.suggestion}</div>
                   </div>
                 ))}
+                {file.refactor_suggestions.length > 6 && (
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center', marginTop: 8 }}>
+                    + {file.refactor_suggestions.length - 6} more suggestions hidden
+                  </div>
+                )}
               </div>
             </div>
           </div>
