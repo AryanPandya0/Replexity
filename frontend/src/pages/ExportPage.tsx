@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   FileJson,
@@ -30,6 +31,8 @@ export default function ExportPage({ result }: Props) {
     );
   }
 
+  const [includeAI, setIncludeAI] = useState(false);
+
   const exportCards = [
     {
       title: 'JSON Data',
@@ -53,6 +56,12 @@ export default function ExportPage({ result }: Props) {
       badge: 'PRO',
     },
   ];
+
+  const getPdfUrl = () => {
+    let url = getExportUrl(result.analysis_id, 'pdf');
+    if (includeAI) url += '?ai=true';
+    return url;
+  };
 
   return (
     <div style={{ position: 'relative', minHeight: 'calc(100vh - 72px)' }}>
@@ -79,6 +88,20 @@ export default function ExportPage({ result }: Props) {
           <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
             Download comprehensive architectural data in your preferred format.
           </p>
+        </div>
+
+        {/* ── AI Checkbox for PDF ── */}
+        <div style={{ marginBottom: 24, display: 'flex', alignItems: 'center', gap: 12, padding: '16px 20px', background: 'var(--bg-secondary)', border: '1px solid var(--accent)', borderRadius: 12, width: 'fit-content' }}>
+          <input 
+            type="checkbox" 
+            id="includeAIToggle" 
+            checked={includeAI} 
+            onChange={(e) => setIncludeAI(e.target.checked)}
+            style={{ width: 18, height: 18, accentColor: 'var(--accent)', cursor: 'pointer' }}
+          />
+          <label htmlFor="includeAIToggle" style={{ fontSize: '0.9rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Zap size={16} style={{ color: 'var(--accent)' }} /> Include AI Generated Executive Solutions in PDF
+          </label>
         </div>
 
         {/* ── 3-column Download Cards ── */}
@@ -131,7 +154,7 @@ export default function ExportPage({ result }: Props) {
 
               {/* Download Button */}
               <a
-                href={getExportUrl(result.analysis_id, card.format)}
+                href={card.format === 'pdf' ? getPdfUrl() : getExportUrl(result.analysis_id, card.format)}
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{

@@ -45,3 +45,18 @@ export async function checkAnalysisStatus(taskId: string): Promise<PollResponse>
 export function getExportUrl(analysisId: string, format: 'json' | 'csv' | 'pdf'): string {
   return `/api/export/${analysisId}/${format}`;
 }
+
+export async function generateProjectAIReview(project_overview: any, top_issues: any[]): Promise<string> {
+  const res = await api.post('/ai/review/project', { project_overview, top_issues });
+  return res.data.review;
+}
+
+export async function generateFileAIReview(file_path: string, file_metrics: any, code_content: string | null): Promise<string> {
+  const res = await api.post('/ai/review/file', { file_path, file_metrics, code_content });
+  return res.data.review;
+}
+
+export async function generatePdfAIReview(project_overview: any, issues: any[]): Promise<string> {
+  const res = await api.post('/ai/review/pdf', { project_overview, issues });
+  return res.data.review;
+}

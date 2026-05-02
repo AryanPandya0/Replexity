@@ -151,3 +151,4 @@ class AnalysisResult(BaseModel):
     risk_distribution: Dict[str, int] = {"low": 0, "medium": 0, "high": 0, "critical": 0}
     dead_functions: List[CodeSmellResult] = []
     dependency_graph: Optional[DependencyGraph] = None
+    ai_review: Optional[str] = None

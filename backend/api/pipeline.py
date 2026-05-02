@@ -418,6 +418,7 @@ def run_analysis_pipeline(analysis_id: str, repo_root: str, source_files: List[s
         risk_distribution=risk_dist,
         dead_functions=dead_function_results,
         dependency_graph=dep_graph,
+        ai_review=None,
     )
 
     cache_result(analysis_id, result)

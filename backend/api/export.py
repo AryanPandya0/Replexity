@@ -99,7 +99,7 @@ class StylizedPDF(FPDF):
         self.cell(0, 10, f"Page {self.page_no()} | Analysis ID: {self.analysis_id}", align='C')
 
 @router.get("/export/{analysis_id}/pdf")
-async def export_pdf(analysis_id: str):
+async def export_pdf(analysis_id: str, ai: bool = False):
     try:
         result = get_cached_result(analysis_id)
         if not result:
@@ -115,9 +115,6 @@ async def export_pdf(analysis_id: str):
         pdf.set_text_color(30, 41, 59)
         pdf.set_font("Helvetica", "B", 18)
         pdf.set_x(15)
-        pdf.multi_cell(safe_w, 10, _s(result.project_name))
-        pdf.ln(2)
-
         # ── Overview Cards ──
         o = result.overview
         pdf.set_fill_color(248, 250, 252) # slate-50
@@ -138,81 +135,113 @@ async def export_pdf(analysis_id: str):
         
         pdf.ln(20)
 
-        # ── Risk Distribution ──
-        pdf.set_font("Helvetica", "B", 13)
-        pdf.set_text_color(15, 23, 42)
-        pdf.set_x(15)
-        pdf.cell(0, 10, _s("Risk Profile Distribution"), ln=True)
-        
-        colors = {"low": (34, 197, 94), "medium": (234, 179, 8), "high": (249, 115, 22), "critical": (239, 68, 68)}
-        for level, count in result.risk_distribution.items():
-            pdf.set_x(18)
-            pdf.set_fill_color(*colors.get(level, (100, 100, 100)))
-            pdf.rect(18, pdf.get_y() + 2, 3, 3, 'F')
-            pdf.set_xy(23, pdf.get_y())
-            pdf.set_font("Helvetica", "", 10)
-            pdf.set_text_color(51, 65, 85)
-            pdf.cell(0, 7, _s(f"{level.capitalize()}: {count} files"), ln=True)
-        pdf.ln(5)
-
-        # ── Top Risk Files ──
-        pdf.set_fill_color(241, 245, 249)
-        pdf.set_font("Helvetica", "B", 13)
-        pdf.set_text_color(15, 23, 42)
-        pdf.set_x(15)
-        pdf.cell(safe_w, 10, _s(" Hotspots: Highest Risk Components"), ln=True, fill=True)
-        pdf.ln(2)
-        
-        pdf.set_font("Helvetica", "", 8)
-        for f in result.files[:20]:
-            pdf.set_x(18)
-            pdf.set_text_color(14, 165, 233)
-            pdf.cell(0, 5, _s(f.file_path), ln=True)
-            pdf.set_x(22)
-            pdf.set_text_color(100, 116, 139)
-            m_text = f"Risk {f.risk_score} | Complexity {f.cyclomatic_complexity} | Cognitive {f.cognitive_complexity} | LOC {f.loc} | Churn {f.code_churn}"
-            pdf.cell(0, 4, _s(m_text), ln=True)
-            pdf.ln(1)
-        pdf.ln(5)
-
-        # ── Code Smells ──
-        if result.code_smells:
-            pdf.set_fill_color(241, 245, 249)
+        # ── AI Executive Summary (Optional) ──
+        if ai:
+            from backend.analysis_engine.ai_reviewer import generate_pdf_review
+            pdf.set_fill_color(230, 240, 255)
+            pdf.rect(15, pdf.get_y(), safe_w, 10, 'F')
+            pdf.set_font("Helvetica", "B", 13)
+            pdf.set_text_color(15, 23, 42)
+            pdf.set_xy(15, pdf.get_y() + 2)
+            pdf.cell(0, 6, _s(" AI Executive Solution & Strategy"), ln=True)
+            pdf.ln(4)
+            
+            # Format files for AI review
+            top_files = []
+            for f in result.files[:50]:
+                top_files.append({
+                    "path": f.file_path,
+                    "risk": f.risk_score,
+                    "complexity": f.cyclomatic_complexity,
+                    "smells": [s.issue for s in f.code_smells[:3]]
+                })
+            
+            ai_text = generate_pdf_review(result.overview.model_dump(), top_files)
+            
+            if ai_text:
+                pdf.set_font("Helvetica", "", 11)
+                pdf.set_text_color(30, 41, 59)
+                pdf.set_x(15)
+                # Simple cleanup of markdown bolding for the PDF
+                ai_text_clean = ai_text.replace('**', '').replace('##', '').replace('* ', '- ')
+                pdf.multi_cell(safe_w, 6, _s(ai_text_clean))
+                pdf.ln(10)
+        else:
+            # ── Risk Distribution ──
             pdf.set_font("Helvetica", "B", 13)
             pdf.set_text_color(15, 23, 42)
             pdf.set_x(15)
-            pdf.cell(safe_w, 10, _s(" Strategic Technical Debt: Code Smells"), ln=True, fill=True)
-            pdf.ln(2)
-            for s in result.code_smells[:25]:
+            pdf.cell(0, 10, _s("Risk Profile Distribution"), ln=True)
+            
+            colors = {"low": (34, 197, 94), "medium": (234, 179, 8), "high": (249, 115, 22), "critical": (239, 68, 68)}
+            for level, count in result.risk_distribution.items():
                 pdf.set_x(18)
-                pdf.set_font("Helvetica", "B", 9)
-                pdf.set_text_color(225, 29, 72)
-                pdf.cell(0, 5, _s(f"[{s.issue.upper()}]"), ln=True)
-                pdf.set_x(20)
-                pdf.set_font("Helvetica", "", 9)
+                pdf.set_fill_color(*colors.get(level, (100, 100, 100)))
+                pdf.rect(18, pdf.get_y() + 2, 3, 3, 'F')
+                pdf.set_xy(23, pdf.get_y())
+                pdf.set_font("Helvetica", "", 10)
                 pdf.set_text_color(51, 65, 85)
-                func_part = f" in {s.function}()" if s.function else ""
-                pdf.multi_cell(safe_w - 5, 5, _s(f"{s.file}{func_part}: {s.suggestion}"))
-                pdf.ln(2)
+                pdf.cell(0, 7, _s(f"{level.capitalize()}: {count} files"), ln=True)
+            pdf.ln(5)
 
-        # ── Dead Code Discovery ──
-        if result.dead_functions:
+            # ── Top Risk Files ──
             pdf.set_fill_color(241, 245, 249)
             pdf.set_font("Helvetica", "B", 13)
             pdf.set_text_color(15, 23, 42)
             pdf.set_x(15)
-            pdf.cell(safe_w, 10, _s(" Dead Code Discovery: Potential Removals"), ln=True, fill=True)
+            pdf.cell(safe_w, 10, _s(" Hotspots: Highest Risk Components"), ln=True, fill=True)
             pdf.ln(2)
-            for d in result.dead_functions[:30]:
+            
+            pdf.set_font("Helvetica", "", 8)
+            for f in result.files[:20]:
                 pdf.set_x(18)
-                pdf.set_font("Helvetica", "B", 9)
-                pdf.set_text_color(239, 68, 68)
-                pdf.cell(0, 5, _s(f"{d.function}"), ln=True)
-                pdf.set_x(20)
-                pdf.set_font("Helvetica", "", 9)
+                pdf.set_text_color(14, 165, 233)
+                pdf.cell(0, 5, _s(f.file_path), ln=True)
+                pdf.set_x(22)
                 pdf.set_text_color(100, 116, 139)
-                pdf.multi_cell(safe_w - 5, 5, _s(f"Defined in {d.file} at L{d.line}. Never called within project."))
+                m_text = f"Risk {f.risk_score} | Complexity {f.cyclomatic_complexity} | Cognitive {f.cognitive_complexity} | LOC {f.loc} | Churn {f.code_churn}"
+                pdf.cell(0, 4, _s(m_text), ln=True)
+                pdf.ln(1)
+            pdf.ln(5)
+
+            # ── Code Smells ──
+            if result.code_smells:
+                pdf.set_fill_color(241, 245, 249)
+                pdf.set_font("Helvetica", "B", 13)
+                pdf.set_text_color(15, 23, 42)
+                pdf.set_x(15)
+                pdf.cell(safe_w, 10, _s(" Strategic Technical Debt: Code Smells"), ln=True, fill=True)
                 pdf.ln(2)
+                for s in result.code_smells[:25]:
+                    pdf.set_x(18)
+                    pdf.set_font("Helvetica", "B", 9)
+                    pdf.set_text_color(225, 29, 72)
+                    pdf.cell(0, 5, _s(f"[{s.issue.upper()}]"), ln=True)
+                    pdf.set_x(20)
+                    pdf.set_font("Helvetica", "", 9)
+                    pdf.set_text_color(51, 65, 85)
+                    func_part = f" in {s.function}()" if s.function else ""
+                    pdf.multi_cell(safe_w - 5, 5, _s(f"{s.file}{func_part}: {s.suggestion}"))
+                    pdf.ln(2)
+
+            # ── Dead Code Discovery ──
+            if result.dead_functions:
+                pdf.set_fill_color(241, 245, 249)
+                pdf.set_font("Helvetica", "B", 13)
+                pdf.set_text_color(15, 23, 42)
+                pdf.set_x(15)
+                pdf.cell(safe_w, 10, _s(" Dead Code Discovery: Potential Removals"), ln=True, fill=True)
+                pdf.ln(2)
+                for d in result.dead_functions[:30]:
+                    pdf.set_x(18)
+                    pdf.set_font("Helvetica", "B", 9)
+                    pdf.set_text_color(239, 68, 68)
+                    pdf.cell(0, 5, _s(f"{d.function}"), ln=True)
+                    pdf.set_x(20)
+                    pdf.set_font("Helvetica", "", 9)
+                    pdf.set_text_color(100, 116, 139)
+                    pdf.multi_cell(safe_w - 5, 5, _s(f"Defined in {d.file} at L{d.line}. Never called within project."))
+                    pdf.ln(2)
 
         pdf_bytes = pdf.output()
         if isinstance(pdf_bytes, bytearray): pdf_bytes = bytes(pdf_bytes)

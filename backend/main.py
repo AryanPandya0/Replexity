@@ -2,6 +2,12 @@
 FastAPI application entry point.
 """
 import os
+from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables from backend/.env file specifically
+env_path = Path(__file__).parent / ".env"
+load_dotenv(dotenv_path=env_path)
 
 from backend.api.routes import router
 from fastapi import FastAPI
@@ -27,7 +33,6 @@ app.add_middleware(
 )
 
 app.include_router(router)
-
 
 @app.get("/")
 async def root():

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -21,7 +21,9 @@ import { FileRankingTable } from '../components/dashboard/FileRankingTable';
 import { FloatingElementsLayer } from '../components/FloatingElements';
 import { DependencyGraph } from '../components/DependencyGraph';
 import { Animated } from '../components/Animated';
-import { Layers, ArrowLeftRight } from 'lucide-react';
+import { Layers, ArrowLeftRight, Bot } from 'lucide-react';
+
+import { generateProjectAIReview } from '../api';
 
 interface Props {
   result: AnalysisResult | null;
@@ -29,7 +31,31 @@ interface Props {
 
 export default function DashboardPage({ result }: Props) {
   const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
+  const [aiReview, setAiReview] = useState<string | null>(null);
+  const [generatingAi, setGeneratingAi] = useState(false);
   const navigate = useNavigate();
+
+  // ... (keep the if (!result) part intact, but we'll do this carefully)
+  const handleGenerateAI = async () => {
+    if (!result) return;
+    try {
+      setGeneratingAi(true);
+      
+      const topIssues = result.files.slice(0, 5).map(f => ({
+        file: f.file_path,
+        risk_score: f.risk_score,
+        complexity: f.cyclomatic_complexity,
+        smells: f.code_smells.slice(0, 3).map(s => s.issue)
+      }));
+
+      const review = await generateProjectAIReview(result.overview, topIssues);
+      setAiReview(review);
+    } catch (err: any) {
+      alert(err.response?.data?.detail || 'Failed to generate AI review.');
+    } finally {
+      setGeneratingAi(false);
+    }
+  };
 
   if (!result) {
     return (
@@ -148,6 +174,47 @@ export default function DashboardPage({ result }: Props) {
 
       {/* ── Stat Cards ── */}
       <StatCards result={result} />
+
+      {/* ── AI Executive Summary ── */}
+      <Animated style={{ ...cBox, marginBottom: 20, borderColor: aiReview ? 'var(--accent)' : 'var(--border)', background: aiReview ? 'linear-gradient(145deg, rgba(210,193,182,0.05) 0%, rgba(10,10,10,0) 100%)' : 'var(--bg-secondary)' }} delay={0.05}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: aiReview ? 16 : 0 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000' }}>
+              <Bot size={24} />
+            </div>
+            <div>
+              <div style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--accent)' }}>AI Executive Review</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Automated Principal Engineer Analysis</div>
+            </div>
+          </div>
+          {!aiReview && (
+            <button
+              onClick={handleGenerateAI}
+              disabled={generatingAi}
+              className="btn btn-primary"
+              style={{ padding: '10px 20px', borderRadius: 8, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: 8 }}
+            >
+              {generatingAi ? (
+                <>
+                  <div className="spinner" style={{ width: 14, height: 14, border: '2px solid rgba(0,0,0,0.2)', borderTopColor: '#000' }} />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Bot size={16} />
+                  Ask AI for Overall Review
+                </>
+              )}
+            </button>
+          )}
+        </div>
+
+        {aiReview && (
+          <div style={{ color: '#adc5d6', fontSize: '0.95rem', lineHeight: 1.8, fontFamily: 'var(--font-sans)', marginTop: 16 }}>
+            <TypewriterText text={aiReview} />
+          </div>
+        )}
+      </Animated>
 
       {/* ── Row 1: Health + Languages | Risk Doughnut ── */}
       {/* ── Rows for Data ── */}
@@ -349,10 +416,15 @@ export default function DashboardPage({ result }: Props) {
           </button>
         </Animated>
       )}
+
+
+
       </div>
     </div>
   );
 }
+
+
 
 function HotspotItem({ label, value, color }: { label: string; value: string; color: string }) {
   const fileName = value.split(/[/\\]/).pop() || value;
@@ -366,4 +438,26 @@ function HotspotItem({ label, value, color }: { label: string; value: string; co
       <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{fileName}</div>
     </div>
   );
+}
+
+function TypewriterText({ text }: { text: string }) {
+  const [displayedText, setDisplayedText] = useState("");
+
+  useEffect(() => {
+    let index = 0;
+    setDisplayedText("");
+    
+    // Quick typing effect
+    const interval = setInterval(() => {
+      setDisplayedText((prev) => prev + text.charAt(index));
+      index++;
+      if (index >= text.length) {
+        clearInterval(interval);
+      }
+    }, 15);
+    
+    return () => clearInterval(interval);
+  }, [text]);
+
+  return <div style={{ whiteSpace: 'pre-wrap' }}>{displayedText}</div>;
 }

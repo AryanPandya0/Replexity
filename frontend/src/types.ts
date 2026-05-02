@@ -102,4 +102,5 @@ export interface AnalysisResult {
   risk_distribution: Record<string, number>;
   dead_functions: CodeSmellResult[];
   dependency_graph: DependencyGraph | null;
+  ai_review?: string | null;
 }
