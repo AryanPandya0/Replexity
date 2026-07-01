@@ -287,7 +287,7 @@ def detect_clones(
             max(c.file_a, c.file_b),
             min(c.start_a, c.start_b) if c.file_a == c.file_b else c.start_a if c.file_a < c.file_b else c.start_b,
             max(c.start_a, c.start_b) if c.file_a == c.file_b else c.end_a if c.file_a < c.file_b else c.end_b,
-        )
+        )       
         if key not in seen:
             seen.add(key)
             unique_clones.append(c)
