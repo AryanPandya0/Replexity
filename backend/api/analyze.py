@@ -2,18 +2,26 @@ import os
 import tempfile
 import traceback
 from typing import List, Optional
-from fastapi import APIRouter, File, HTTPException, UploadFile, BackgroundTasks
+from fastapi import APIRouter, File, HTTPException, UploadFile, BackgroundTasks, Depends
 from backend.api.tasks import create_task, get_task, TaskStatus
 from backend.api.pipeline import run_analysis_pipeline, get_cached_result
 from backend.api.schemas import GitHubAnalysisRequest, LocalAnalysisRequest, AnalysisResult
 from backend.analysis_engine.repo_manager import clone_github_repo, extract_zip, use_local_directory, cleanup
+from backend.api.auth import get_current_user
+from backend.database.models import User
+from backend.database.persistence import save_analysis_to_db
 
 router = APIRouter(tags=["analysis"])
 
 @router.post("/analyze/github")
-async def analyze_github(req: GitHubAnalysisRequest, background_tasks: BackgroundTasks):
+async def analyze_github(
+    req: GitHubAnalysisRequest, 
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user)
+):
     task = create_task()
     task.status = TaskStatus.PROCESSING
+    user_id = current_user.id
     
     def _background_job():
         try:
@@ -26,6 +34,7 @@ async def analyze_github(req: GitHubAnalysisRequest, background_tasks: Backgroun
             res = run_analysis_pipeline(analysis_id, repo_root, files)
             task.result = res
             task.status = TaskStatus.COMPLETED
+            save_analysis_to_db(task.task_id, res, user_id=user_id)
             print(f"Task {task.task_id}: Completed successfully.", flush=True)
         except Exception as e:
             print(f"Task {task.task_id}: Failed: {e}", flush=True)
@@ -40,12 +49,17 @@ async def analyze_github(req: GitHubAnalysisRequest, background_tasks: Backgroun
     return {"task_id": task.task_id, "status": task.status}
 
 @router.post("/analyze/upload")
-async def analyze_upload(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
+async def analyze_upload(
+    background_tasks: BackgroundTasks, 
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user)
+):
     if not file.filename or not file.filename.endswith(".zip"):
         raise HTTPException(status_code=400, detail="Please upload a .zip file.")
 
     task = create_task()
     task.status = TaskStatus.PROCESSING
+    user_id = current_user.id
 
     # Save the uploaded file inline before responding to the user
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".zip", mode="wb")
@@ -64,6 +78,7 @@ async def analyze_upload(background_tasks: BackgroundTasks, file: UploadFile = F
             res = run_analysis_pipeline(analysis_id, repo_root, files)
             task.result = res
             task.status = TaskStatus.COMPLETED
+            save_analysis_to_db(task.task_id, res, user_id=user_id)
             print(f"Task {task.task_id}: Completed successfully.")
         except Exception as e:
             print(f"Task {task.task_id}: Failed: {e}")

@@ -6,6 +6,15 @@ const api = axios.create({
   timeout: 120000, // 2 minutes for large repos
 });
 
+// Interceptor to attach Authorization header
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+}, (error) => Promise.reject(error));
+
 interface TaskResponse {
   task_id: string;
   status: string;

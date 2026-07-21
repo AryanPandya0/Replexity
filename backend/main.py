@@ -10,8 +10,12 @@ env_path = Path(__file__).parent / ".env"
 load_dotenv(dotenv_path=env_path)
 
 from backend.api.routes import router
+from backend.database.config import init_db
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
+# Initialize database schema
+init_db()
 
 app = FastAPI(
     title="AI Code Complexity Visualizer",
