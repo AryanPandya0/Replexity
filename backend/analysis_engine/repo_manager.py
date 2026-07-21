@@ -123,6 +123,17 @@ def cleanup(analysis_id: str) -> None:
         shutil.rmtree(dest, ignore_errors=True)
 
 
+from contextlib import contextmanager
+
+@contextmanager
+def temp_repo_dir(analysis_id: str):
+    """Context manager ensuring temporary repo directory is always cleaned up after use."""
+    try:
+        yield WORK_DIR / analysis_id
+    finally:
+        cleanup(analysis_id)
+
+
 def get_code_churn(repo_path: str, file_path: str) -> int:
     """Return the number of commits a file has in the git history."""
     try:

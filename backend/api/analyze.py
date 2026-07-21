@@ -80,11 +80,12 @@ async def analyze_upload(background_tasks: BackgroundTasks, file: UploadFile = F
 
 ALLOW_LOCAL_ANALYSIS = os.environ.get("ALLOW_LOCAL_ANALYSIS", "false").lower() in ("1", "true", "yes")
 LOCAL_ANALYSIS_ALLOWED_ROOTS = [p.strip() for p in os.environ.get("LOCAL_ANALYSIS_ALLOWED_ROOTS", "").split(",") if p.strip()]
+APP_ENV = os.environ.get("ENVIRONMENT", "development").lower()
 
 @router.post("/analyze/local")
 async def analyze_local(req: LocalAnalysisRequest, background_tasks: BackgroundTasks):
-    if not ALLOW_LOCAL_ANALYSIS:
-        raise HTTPException(status_code=403, detail="Local analysis is disabled.")
+    if APP_ENV == "production" or not ALLOW_LOCAL_ANALYSIS:
+        raise HTTPException(status_code=403, detail="Local filesystem analysis is disabled in production SaaS mode.")
 
     real_path = os.path.realpath(req.path)
     if LOCAL_ANALYSIS_ALLOWED_ROOTS:
