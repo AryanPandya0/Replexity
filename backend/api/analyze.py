@@ -8,6 +8,7 @@ from backend.api.pipeline import run_analysis_pipeline, get_cached_result
 from backend.api.schemas import GitHubAnalysisRequest, LocalAnalysisRequest, AnalysisResult
 from backend.analysis_engine.repo_manager import clone_github_repo, extract_zip, use_local_directory, cleanup
 from backend.api.auth import get_current_user
+from backend.api.quotas import check_user_quota
 from backend.database.models import User
 from backend.database.persistence import save_analysis_to_db
 
@@ -19,7 +20,7 @@ router = APIRouter(tags=["analysis"])
 async def analyze_github(
     req: GitHubAnalysisRequest, 
     background_tasks: BackgroundTasks,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(check_user_quota)
 ):
     task = create_task()
     task.status = TaskStatus.PROCESSING
@@ -31,7 +32,7 @@ async def analyze_github(
 async def analyze_upload(
     background_tasks: BackgroundTasks, 
     file: UploadFile = File(...),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(check_user_quota)
 ):
     if not file.filename or not file.filename.endswith(".zip"):
         raise HTTPException(status_code=400, detail="Please upload a .zip file.")

@@ -12,3 +12,4 @@ openai>=1.14.0
 python-dotenv>=1.0.1
 sqlalchemy>=2.0.0
 pyjwt>=2.8.0
+stripe>=8.0.0
