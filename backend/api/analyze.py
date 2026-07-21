@@ -11,6 +11,8 @@ from backend.api.auth import get_current_user
 from backend.database.models import User
 from backend.database.persistence import save_analysis_to_db
 
+from backend.api.queue import dispatch_github_analysis, dispatch_upload_analysis
+
 router = APIRouter(tags=["analysis"])
 
 @router.post("/analyze/github")
@@ -21,31 +23,8 @@ async def analyze_github(
 ):
     task = create_task()
     task.status = TaskStatus.PROCESSING
-    user_id = current_user.id
-    
-    def _background_job():
-        try:
-            print(f"Task {task.task_id}: Cloning repository {req.url}...", flush=True)
-            analysis_id, repo_root, files = clone_github_repo(req.url, req.branch)
-            if not files:
-                raise Exception("No supported source files found.")
-            
-            print(f"Task {task.task_id}: Analyzing {len(files)} files...", flush=True)
-            res = run_analysis_pipeline(analysis_id, repo_root, files)
-            task.result = res
-            task.status = TaskStatus.COMPLETED
-            save_analysis_to_db(task.task_id, res, user_id=user_id)
-            print(f"Task {task.task_id}: Completed successfully.", flush=True)
-        except Exception as e:
-            print(f"Task {task.task_id}: Failed: {e}", flush=True)
-            traceback.print_exc()
-            task.status = TaskStatus.FAILED
-            task.error = str(e)
-        finally:
-            if 'analysis_id' in locals():
-                cleanup(analysis_id)
-
-    background_tasks.add_task(_background_job)
+    job = dispatch_github_analysis(task, req.url, req.branch, user_id=current_user.id)
+    background_tasks.add_task(job)
     return {"task_id": task.task_id, "status": task.status}
 
 @router.post("/analyze/upload")
@@ -59,7 +38,6 @@ async def analyze_upload(
 
     task = create_task()
     task.status = TaskStatus.PROCESSING
-    user_id = current_user.id
 
     # Save the uploaded file inline before responding to the user
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".zip", mode="wb")
@@ -67,30 +45,8 @@ async def analyze_upload(
     tmp.write(content)
     tmp.close()
 
-    def _background_job():
-        try:
-            print(f"Task {task.task_id}: Extracting zip file...")
-            analysis_id, repo_root, files = extract_zip(tmp.name)
-            if not files:
-                raise Exception("No supported source files found in archive.")
-            
-            print(f"Task {task.task_id}: Analyzing {len(files)} files...")
-            res = run_analysis_pipeline(analysis_id, repo_root, files)
-            task.result = res
-            task.status = TaskStatus.COMPLETED
-            save_analysis_to_db(task.task_id, res, user_id=user_id)
-            print(f"Task {task.task_id}: Completed successfully.")
-        except Exception as e:
-            print(f"Task {task.task_id}: Failed: {e}")
-            task.status = TaskStatus.FAILED
-            task.error = str(e)
-        finally:
-            if os.path.exists(tmp.name):
-                os.unlink(tmp.name)
-            if 'analysis_id' in locals():
-                cleanup(analysis_id)
-
-    background_tasks.add_task(_background_job)
+    job = dispatch_upload_analysis(task, tmp.name, user_id=current_user.id)
+    background_tasks.add_task(job)
     return {"task_id": task.task_id, "status": task.status}
 
 ALLOW_LOCAL_ANALYSIS = os.environ.get("ALLOW_LOCAL_ANALYSIS", "false").lower() in ("1", "true", "yes")
