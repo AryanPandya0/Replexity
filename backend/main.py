@@ -9,8 +9,8 @@ from dotenv import load_dotenv
 env_path = Path(__file__).parent / ".env"
 load_dotenv(dotenv_path=env_path)
 
-from backend.api.routes import router
-from backend.database.config import init_db
+from api.routes import router
+from database.config import init_db
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -25,7 +25,7 @@ app = FastAPI(
 
 # CORS – read allowed origins from env; default to Vite dev server.
 # In production set: CORS_ORIGINS=https://yourdomain.com
-_cors_env = os.environ.get("CORS_ORIGINS", "http://localhost:5173")
+_cors_env = os.environ.get("CORS_ORIGINS", "https://replexity.in,https://www.replexity.in")
 CORS_ORIGINS = [origin.strip() for origin in _cors_env.split(",") if origin.strip()]
 
 app.add_middleware(
