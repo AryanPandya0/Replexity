@@ -7,7 +7,7 @@ import shutil
 import subprocess
 from typing import List, Optional
 
-from backend.api.schemas import CodeSmellResult
+from api.schemas import CodeSmellResult
 
 def run_ruff(repo_root: str) -> List[CodeSmellResult]:
     """Run Ruff linter on Python files and return parsed results."""

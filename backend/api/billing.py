@@ -5,10 +5,10 @@ import os
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-from backend.database.session import get_db
-from backend.database.models import User, UserPlan
-from backend.api.auth import get_current_user
-from backend.api.quotas import get_user_monthly_usage, TIER_LIMITS
+from database.session import get_db
+from database.models import User, UserPlan
+from api.auth import get_current_user
+from api.quotas import get_user_monthly_usage, TIER_LIMITS
 
 try:
     import stripe  # type: ignore

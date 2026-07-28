@@ -2,17 +2,17 @@ import os
 import threading
 from typing import Dict, List, Set, Tuple, Optional
 from collections import OrderedDict
-from backend.analysis_engine.bug_predictor import predict_bug_risk
-from backend.analysis_engine.code_parser import parse_file
-from backend.analysis_engine.complexity_analyzer import analyze_complexity
-from backend.analysis_engine.health_score import calculate_health_score
-from backend.analysis_engine.refactor_engine import generate_suggestions
-from backend.analysis_engine.repo_manager import get_code_churn
-from backend.analysis_engine.risk_model import calculate_risk_score
-from backend.analysis_engine.smell_detector import detect_smells
-from backend.analysis_engine.clone_detector import detect_clones
-from backend.analysis_engine.linter_service import run_all_linters
-from backend.api.schemas import (
+from analysis_engine.bug_predictor import predict_bug_risk
+from analysis_engine.code_parser import parse_file
+from analysis_engine.complexity_analyzer import analyze_complexity
+from analysis_engine.health_score import calculate_health_score
+from analysis_engine.refactor_engine import generate_suggestions
+from analysis_engine.repo_manager import get_code_churn
+from analysis_engine.risk_model import calculate_risk_score
+from analysis_engine.smell_detector import detect_smells
+from analysis_engine.clone_detector import detect_clones
+from analysis_engine.linter_service import run_all_linters
+from api.schemas import (
     AnalysisResult,
     CodeSmellResult,
     FileMetrics,

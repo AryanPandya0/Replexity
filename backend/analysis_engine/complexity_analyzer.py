@@ -16,7 +16,7 @@ try:
     from .code_parser import ParseResult, FunctionInfo, calculate_halstead_metrics  # type: ignore
 except (ImportError, ValueError):
     try:
-        from backend.analysis_engine.code_parser import ParseResult, FunctionInfo, calculate_halstead_metrics  # type: ignore
+        from analysis_engine.code_parser import ParseResult, FunctionInfo, calculate_halstead_metrics  # type: ignore
     except ImportError:
         # Final fallback if both fail
         pass

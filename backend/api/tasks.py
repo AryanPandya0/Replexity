@@ -3,7 +3,7 @@ from typing import Optional, OrderedDict
 from collections import OrderedDict as CollectionsOrderedDict
 import threading
 import uuid
-from backend.api.schemas import AnalysisResult
+from api.schemas import AnalysisResult
 
 class TaskStatus(str, Enum):
     PENDING = "pending"

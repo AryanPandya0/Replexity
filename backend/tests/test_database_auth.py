@@ -4,11 +4,11 @@ Unit & Integration tests for Database ORM and JWT Authentication Dependency.
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from backend.database.config import Base
-from backend.database.models import User, Project, AnalysisRun, FileMetric, UserPlan
-from backend.database.persistence import save_analysis_to_db
-from backend.api.auth import create_access_token, decode_access_token
-from backend.api.schemas import AnalysisResult, ProjectOverview
+from database.config import Base
+from database.models import User, Project, AnalysisRun, FileMetric, UserPlan
+from database.persistence import save_analysis_to_db
+from api.auth import create_access_token, decode_access_token
+from api.schemas import AnalysisResult, ProjectOverview
 
 TEST_SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
 
@@ -44,7 +44,7 @@ def test_jwt_token_generation_and_decode():
     assert payload["plan"] == "pro"
 
 def test_persistence_helper(db_session, monkeypatch):
-    monkeypatch.setattr("backend.database.persistence.SessionLocal", lambda: db_session)
+    monkeypatch.setattr("database.persistence.SessionLocal", lambda: db_session)
 
     res = AnalysisResult(
         analysis_id="test_run_1",

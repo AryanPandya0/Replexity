@@ -5,10 +5,10 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from backend.main import app
-from backend.database.config import Base
-from backend.database.models import User, AnalysisRun, UserPlan
-from backend.api.quotas import get_user_monthly_usage
+from main import app
+from database.config import Base
+from database.models import User, AnalysisRun, UserPlan
+from api.quotas import get_user_monthly_usage
 
 TEST_SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
 

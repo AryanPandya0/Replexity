@@ -4,9 +4,9 @@ Quota Enforcement & Subscription Tier Limit Manager.
 from datetime import datetime
 from fastapi import HTTPException, status, Depends
 from sqlalchemy.orm import Session
-from backend.database.session import get_db
-from backend.database.models import User, AnalysisRun, UserPlan
-from backend.api.auth import get_current_user
+from database.session import get_db
+from database.models import User, AnalysisRun, UserPlan
+from api.auth import get_current_user
 
 TIER_LIMITS = {
     UserPlan.FREE.value: {

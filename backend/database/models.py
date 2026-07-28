@@ -7,7 +7,7 @@ from sqlalchemy import (
     Column, String, Integer, Float, DateTime, ForeignKey, Text, JSON, Enum as SQLEnum
 )
 from sqlalchemy.orm import relationship
-from backend.database.config import Base
+from database.config import Base
 import enum
 
 class UserPlan(str, enum.Enum):

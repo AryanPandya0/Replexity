@@ -2,7 +2,7 @@
 Unit tests for the risk scoring model.
 """
 import pytest
-from backend.analysis_engine.risk_model import calculate_risk_score, _normalize, _risk_level  # type: ignore
+from analysis_engine.risk_model import calculate_risk_score, _normalize, _risk_level  # type: ignore
 
 def test_normalize():
     assert _normalize(5, 0, 10) == 50.0

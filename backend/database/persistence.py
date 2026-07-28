@@ -3,9 +3,9 @@ Database Persistence Helper for Analysis Results.
 """
 from typing import Optional
 from sqlalchemy.orm import Session
-from backend.database.config import SessionLocal
-from backend.database.models import AnalysisRun, FileMetric, Project
-from backend.api.schemas import AnalysisResult
+from database.config import SessionLocal
+from database.models import AnalysisRun, FileMetric, Project
+from api.schemas import AnalysisResult
 
 def save_analysis_to_db(task_id: str, result: AnalysisResult, user_id: Optional[str] = None) -> Optional[str]:
     """Persist an AnalysisResult into the database tables."""

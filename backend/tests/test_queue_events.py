@@ -4,10 +4,10 @@ Unit tests for SSE event engine and task queue dispatcher.
 import asyncio
 import pytest
 from fastapi.testclient import TestClient
-from backend.main import app
-from backend.api.events import publish_event, subscribe_events, unsubscribe_events
-from backend.api.tasks import create_task
-from backend.api.queue import dispatch_github_analysis
+from main import app
+from api.events import publish_event, subscribe_events, unsubscribe_events
+from api.tasks import create_task
+from api.queue import dispatch_github_analysis
 
 client = TestClient(app)
 
