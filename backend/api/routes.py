@@ -2,11 +2,11 @@
 API Routes Aggregator – includes split routers for analysis and export.
 """
 from fastapi import APIRouter
-from backend.api.analyze import router as analyze_router
-from backend.api.export import router as export_router
-from backend.api.ai import router as ai_router
-from backend.api.events import router as events_router
-from backend.api.billing import router as billing_router
+from api.analyze import router as analyze_router
+from api.export import router as export_router
+from api.ai import router as ai_router
+from api.events import router as events_router
+from api.billing import router as billing_router
 
 router = APIRouter(prefix="/api")
 
