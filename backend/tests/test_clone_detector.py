@@ -2,7 +2,7 @@
 Tests for the clone_detector module.
 """
 import pytest
-from backend.analysis_engine.clone_detector import (
+from analysis_engine.clone_detector import (
     ClonePair,
     _normalize_line,
     _normalize_source,

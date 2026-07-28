@@ -5,11 +5,11 @@ Supports Celery/Redis distributed queue when configured, or local async task que
 import os
 import traceback
 from typing import Callable
-from backend.api.tasks import TaskStatus, AnalysisTask
-from backend.api.events import publish_event_sync
-from backend.api.pipeline import run_analysis_pipeline
-from backend.analysis_engine.repo_manager import clone_github_repo, extract_zip, cleanup
-from backend.database.persistence import save_analysis_to_db
+from api.tasks import TaskStatus, AnalysisTask
+from api.events import publish_event_sync
+from api.pipeline import run_analysis_pipeline
+from analysis_engine.repo_manager import clone_github_repo, extract_zip, cleanup
+from database.persistence import save_analysis_to_db
 
 USE_CELERY = os.environ.get("USE_CELERY", "false").lower() in ("true", "1", "yes")
 

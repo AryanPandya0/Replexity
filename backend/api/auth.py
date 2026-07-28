@@ -8,8 +8,8 @@ import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
-from backend.database.session import get_db
-from backend.database.models import User, UserPlan
+from database.session import get_db
+from database.models import User, UserPlan
 
 JWT_SECRET = os.environ.get("JWT_SECRET", "replexity-saas-dev-secret-key-32bytes-min")
 JWT_ALGORITHM = "HS256"

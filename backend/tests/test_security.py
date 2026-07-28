@@ -13,7 +13,7 @@ from pydantic import ValidationError
 
 # ── 1. GitHub URL Validation ────────────────────────────────────
 
-from backend.api.schemas import GitHubAnalysisRequest  # type: ignore
+from api.schemas import GitHubAnalysisRequest  # type: ignore
 
 
 class TestGitHubURLValidation:
@@ -52,7 +52,7 @@ class TestGitHubURLValidation:
 
 # ── 2. Zip Bomb Guards ─────────────────────────────────────────
 
-from backend.analysis_engine.repo_manager import (  # type: ignore
+from analysis_engine.repo_manager import (  # type: ignore
     extract_zip,
     MAX_UNCOMPRESSED_SIZE,
     MAX_ZIP_FILE_COUNT,
@@ -106,8 +106,8 @@ class TestLocalAnalysisEndpoint:
     def client(self, monkeypatch):
         """Create a test client with local analysis disabled (default)."""
         # Directly patch the module-level variables
-        import backend.api.analyze as analyze_mod
-        from backend.main import app  # type: ignore
+        import api.analyze as analyze_mod
+        from main import app  # type: ignore
         from fastapi.testclient import TestClient  # type: ignore
 
         monkeypatch.setattr(analyze_mod, "ALLOW_LOCAL_ANALYSIS", False)

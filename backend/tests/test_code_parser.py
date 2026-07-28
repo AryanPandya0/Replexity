@@ -3,7 +3,7 @@ Unit tests for the tree-sitter code parser.
 """
 import pytest
 import os
-from backend.analysis_engine.code_parser import parse_file  # type: ignore
+from analysis_engine.code_parser import parse_file  # type: ignore
 
 PYTHON_SAMPLE = """
 import math

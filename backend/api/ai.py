@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Dict, Any, List, Optional
-from backend.analysis_engine.ai_reviewer import generate_ai_review, generate_file_review, generate_pdf_review
+from analysis_engine.ai_reviewer import generate_ai_review, generate_file_review, generate_pdf_review
 
 router = APIRouter(tags=["ai"])
 

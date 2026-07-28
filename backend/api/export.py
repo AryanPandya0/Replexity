@@ -3,8 +3,8 @@ import csv
 import traceback
 from fastapi import APIRouter, HTTPException, Response
 from fastapi.responses import StreamingResponse
-from backend.api.pipeline import get_cached_result
-from backend.api.schemas import AnalysisResult
+from api.pipeline import get_cached_result
+from api.schemas import AnalysisResult
 from fpdf import FPDF
 
 router = APIRouter(tags=["export"])
@@ -137,7 +137,7 @@ async def export_pdf(analysis_id: str, ai: bool = False):
 
         # ── AI Executive Summary (Optional) ──
         if ai:
-            from backend.analysis_engine.ai_reviewer import generate_pdf_review
+            from analysis_engine.ai_reviewer import generate_pdf_review
             pdf.set_fill_color(230, 240, 255)
             pdf.rect(15, pdf.get_y(), safe_w, 10, 'F')
             pdf.set_font("Helvetica", "B", 13)

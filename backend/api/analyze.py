@@ -3,16 +3,16 @@ import tempfile
 import traceback
 from typing import List, Optional
 from fastapi import APIRouter, File, HTTPException, UploadFile, BackgroundTasks, Depends
-from backend.api.tasks import create_task, get_task, TaskStatus
-from backend.api.pipeline import run_analysis_pipeline, get_cached_result
-from backend.api.schemas import GitHubAnalysisRequest, LocalAnalysisRequest, AnalysisResult
-from backend.analysis_engine.repo_manager import clone_github_repo, extract_zip, use_local_directory, cleanup
-from backend.api.auth import get_current_user
-from backend.api.quotas import check_user_quota
-from backend.database.models import User
-from backend.database.persistence import save_analysis_to_db
+from api.tasks import create_task, get_task, TaskStatus
+from api.pipeline import run_analysis_pipeline, get_cached_result
+from api.schemas import GitHubAnalysisRequest, LocalAnalysisRequest, AnalysisResult
+from analysis_engine.repo_manager import clone_github_repo, extract_zip, use_local_directory, cleanup
+from api.auth import get_current_user
+from api.quotas import check_user_quota
+from database.models import User
+from database.persistence import save_analysis_to_db
 
-from backend.api.queue import dispatch_github_analysis, dispatch_upload_analysis
+from api.queue import dispatch_github_analysis, dispatch_upload_analysis
 
 router = APIRouter(tags=["analysis"])
 

@@ -6,7 +6,7 @@ Note: Duplicate code detection is handled by clone_detector.py.
 from typing import List
 from dataclasses import dataclass
 
-from backend.analysis_engine.code_parser import ParseResult
+from analysis_engine.code_parser import ParseResult
 
 
 @dataclass

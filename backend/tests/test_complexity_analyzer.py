@@ -2,8 +2,8 @@
 Unit tests for the complexity analyzer logic.
 """
 import pytest
-from backend.analysis_engine.code_parser import ParseResult, FunctionInfo  # type: ignore
-from backend.analysis_engine.complexity_analyzer import _safe_maintainability_index, calculate_halstead_metrics, _compute_generic_complexity  # type: ignore
+from analysis_engine.code_parser import ParseResult, FunctionInfo  # type: ignore
+from analysis_engine.complexity_analyzer import _safe_maintainability_index, calculate_halstead_metrics, _compute_generic_complexity  # type: ignore
 
 def test_halstead_metrics_empty():
     vol, diff, eff = calculate_halstead_metrics([], [])
