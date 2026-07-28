@@ -105,13 +105,13 @@ class TestLocalAnalysisEndpoint:
     @pytest.fixture
     def client(self, monkeypatch):
         """Create a test client with local analysis disabled (default)."""
-        import backend.api.routes as routes_mod
+        # Directly patch the module-level variables
+        import backend.api.analyze as analyze_mod
         from backend.main import app  # type: ignore
         from fastapi.testclient import TestClient  # type: ignore
 
-        # Directly patch the module-level variables
-        monkeypatch.setattr(routes_mod, "ALLOW_LOCAL_ANALYSIS", False)
-        monkeypatch.setattr(routes_mod, "LOCAL_ANALYSIS_ALLOWED_ROOTS", [])
+        monkeypatch.setattr(analyze_mod, "ALLOW_LOCAL_ANALYSIS", False)
+        monkeypatch.setattr(analyze_mod, "LOCAL_ANALYSIS_ALLOWED_ROOTS", [])
 
         return TestClient(app)
 
