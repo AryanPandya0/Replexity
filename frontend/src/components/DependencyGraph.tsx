@@ -270,7 +270,7 @@ function DataBox({ label, value, color }: { label: string; value: string; color:
 }
 
 // Polyfill
-if (typeof (CanvasRenderingContext2D.prototype as any).roundRect !== 'function') {
+if (typeof CanvasRenderingContext2D !== 'undefined' && typeof (CanvasRenderingContext2D.prototype as any).roundRect !== 'function') {
   (CanvasRenderingContext2D.prototype as any).roundRect = function (x: number, y: number, w: number, h: number, r: number) {
     if (w < 2 * r) r = w / 2;
     if (h < 2 * r) r = h / 2;

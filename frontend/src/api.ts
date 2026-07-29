@@ -1,8 +1,12 @@
 import axios from 'axios';
 import type { AnalysisResult } from './types';
 
+const VITE_API_URL = import.meta.env.VITE_API_URL || '';
+const cleanApiUrl = VITE_API_URL.replace(/\/$/, '');
+const API_BASE_URL = cleanApiUrl ? (cleanApiUrl.endsWith('/api') ? cleanApiUrl : `${cleanApiUrl}/api`) : '/api';
+
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: API_BASE_URL,
   timeout: 120000, // 2 minutes for large repos
 });
 
@@ -52,7 +56,7 @@ export async function checkAnalysisStatus(taskId: string): Promise<PollResponse>
 }
 
 export function getExportUrl(analysisId: string, format: 'json' | 'csv' | 'pdf'): string {
-  return `/api/export/${analysisId}/${format}`;
+  return `${API_BASE_URL}/export/${analysisId}/${format}`;
 }
 
 export async function generateProjectAIReview(project_overview: any, top_issues: any[]): Promise<string> {
