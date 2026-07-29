@@ -25,7 +25,7 @@ app = FastAPI(
 
 # CORS – read allowed origins from env; default to Vite dev server.
 # In production set: CORS_ORIGINS=https://yourdomain.com
-_cors_env = os.environ.get("CORS_ORIGINS", "https://replexity.in,https://www.replexity.in")
+_cors_env = os.environ.get("CORS_ORIGINS", "https://replexity.in,https://www.replexity.in,https://replexity.vercel.app,https://www.replexity.vercel.app")
 CORS_ORIGINS = [origin.strip() for origin in _cors_env.split(",") if origin.strip()]
 
 app.add_middleware(
