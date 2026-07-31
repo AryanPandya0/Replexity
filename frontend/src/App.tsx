@@ -12,6 +12,7 @@ import { Terminal, Home, Zap, User as UserIcon, FolderGit2, LogOut } from 'lucid
 import type { AnalysisResult } from './types';
 import './index.css';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import Analytics from './components/Analytics';
 
 function AppNavbar() {
   const { user, logout } = useAuth();
@@ -90,6 +91,7 @@ export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+        <Analytics />
         <AppContent />
       </BrowserRouter>
     </AuthProvider>
